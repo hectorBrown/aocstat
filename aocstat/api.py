@@ -10,41 +10,15 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
 
 
-def read_config(path):
-    """Reads JSON config file at `path`, if it doesn't exist, returns `None`.
+def get_cookie(cache_invalid=False):
+    """Gets session cookie from cache if present and not marked invalid. Authenticates and caches otherwise.
 
     Args:
-        path (string): Path to config file.
+        cache_invalid (bool, optional): Force authentication by setting to `True`. Defaults to False.
 
     Returns:
-        config (dict): A dictionary that describes the JSON object at `path`.
+        cookie (str): Session cookie.
     """
-    if not op.exists(path):
-        return None
-    with open(path, "r") as f:
-        try:
-            return json.loads(f.read())
-        except json.decoder.JSONDecodeError:
-            raise json.decoder.JSONDecodeError(
-                f"Improperly formatted config file at '{path}'."
-            )
-
-
-def write_config(path, data):
-    """Writes `data` to JSON config file at `path`. Preserves existing keys not included in `data`, updates those in both `data` and at `path`, creates those only in `data`.
-
-    Args:
-        path (string): Path to config file.
-        data (dict): Dictionary of data to add to config file.
-    """
-    curr = read_config(path)
-    with open(path, "w") as f:
-        for key in data:
-            curr[key] = data[key]
-        f.write(json.dump(curr, indent=4))
-
-
-def get_cookie(cache_invalid=False):
     if op.exists("aocstat/cache/cookie") and not cache_invalid:
         with open("aocstat/cache/cookie", "rb") as f:
             return pickle.load(f)
