@@ -43,6 +43,7 @@ def write_config(path, data):
 
 def get_cookie(cfg):
     user_cfg = read_config(f"{cfg}/user.cfg")
+    user_cfg = [] if user_cfg is None else user_cfg
     if "cookie" in user_cfg:
         return user_cfg["cookie"]
     else:
@@ -55,7 +56,7 @@ def get_cookie(cfg):
             + "4) Internet Explorer\n"
             + "5) Safari"
         )
-        selection = input("Selection [1,2,3,4,[5]]: ")
+        selection = input("Selection (1,2,3,4,[5]): ")
 
 
 def get_board(id, cache):
