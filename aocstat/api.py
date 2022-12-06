@@ -121,7 +121,7 @@ def get_id():
     return id
 
 
-def get_priv_board(id=None, yr=None, force_update=False, ttl=900):
+def get_priv_lb(id=None, yr=None, force_update=False, ttl=900):
     """Gets a private board, from cache as long as cache was obtained `< ttl` ago.
 
     Args:

@@ -6,7 +6,10 @@
     <note priority="medium" time="1670339702">
         add cli
     </note>
-    <note priority="low" time="1670339842">
+    <note priority="low" time="1670339842" done="1670339940">
         rename functions for consistency
+        <comment>
+            get_priv_board -&gt; get_priv_lb
+        </comment>
     </note>
 </todo>
