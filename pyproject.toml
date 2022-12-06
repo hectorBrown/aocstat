@@ -9,6 +9,7 @@ readme = "README.md"
 python = "^3.10"
 selenium = "^4.7.2"
 requests = "^2.28.1"
+bs4 = "^0.0.1"
 
 
 [build-system]

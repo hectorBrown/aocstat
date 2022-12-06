@@ -2,9 +2,11 @@ import datetime as dt
 import json
 import os.path as op
 import pickle
+import re
 import time
 
 import requests as rq
+from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
@@ -94,6 +96,25 @@ def get_cookie(cache_invalid=False):
         return cookie
 
 
+def get_id():
+    if op.exists("aocstat/cache/id"):
+        with open("aocstat/cache/id", "rb") as f:
+            return pickle.load(f)
+
+    cookie = get_cookie()
+    req = rq.get(
+        f"https://adventofcode.com/{dt.date.today().year}/settings",
+        cookies={"session": cookie},
+    )
+    soup = BeautifulSoup(req.content, "html.parser")
+    id = int(
+        soup.find(string=re.compile("\(anonymous user #(\d+)\)")).split("#")[1][:-1]
+    )
+    with open("aocstat/cache/id", "wb") as f:
+        pickle.dump(id, f)
+    return id
+
+
 def get_priv_board(id=None, yr=None, force_update=False, ttl=900):
     """Gets a private board, from cache as long as cache was obtained `< ttl` ago.
 
@@ -111,8 +132,7 @@ def get_priv_board(id=None, yr=None, force_update=False, ttl=900):
         yr = dt.date.today().year
 
     if id is None:
-        pass
-        # get id
+        id = get_id()
 
     if op.exists(f"aocstat/cache/lb_{yr}_{id}") and not force_update:
         cached_lb = None
