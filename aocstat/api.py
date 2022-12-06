@@ -69,11 +69,12 @@ def get_cookie(cache_invalid=False):
             wd.get("https://adventofcode.com/2022/auth/login")
             print("\nPlease authenticate yourself with one of the methods given.")
 
+            def logged_in(wd):
+                links = wd.find_elements(By.TAG_NAME, "a")
+                return "[Log Out]" in [link.text for link in links]
+
             try:
-                WebDriverWait(wd, timeout=1000, poll_frequency=1).until(
-                    lambda d: "[Log Out]"
-                    in [x.text for x in d.find_elements(By.TAG_NAME, "a")]
-                )
+                WebDriverWait(wd, timeout=1000, poll_frequency=1).until(logged_in)
             except TimeoutException:
                 print("\nTimed out waiting for authentication.\n")
                 wd.quit()
