@@ -15,3 +15,7 @@ bs4 = "^0.0.1"
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+aocstat = "aocstat.main:start"
+aocstat-lb = "aocstat.main:lb"
