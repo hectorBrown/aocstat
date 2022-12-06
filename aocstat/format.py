@@ -1,4 +1,12 @@
 def format_priv_lb(lb):
+    """Return a string representing a leaderboard `lb`.
+
+    Args:
+        lb (dict): Leaderboard to represent.
+
+    Returns:
+        lb_str (str): A 'pretty' string representing the leaderboard.
+    """
     res = ""
     # establish left offset from numbering digits & score digits
     members = sorted(
@@ -24,6 +32,7 @@ def format_priv_lb(lb):
         + "\n"
     )
 
+    # append members row by row
     for i, member in enumerate(members):
         score = lb["members"][member]["local_score"]
         # setup axis
@@ -49,5 +58,4 @@ def format_priv_lb(lb):
         # add names
         res += lb["members"][member]["name"] + "\n"
 
-    print(res)
-    # append members row by row
+    return res
