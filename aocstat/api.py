@@ -1,3 +1,4 @@
+import json
 import os.path as op
 import pickle
 import time
@@ -93,12 +94,23 @@ def get_cookie(cache_invalid=False):
 
 
 def get_priv_board(id, yr, force_update=False, ttl=900):
+    """Gets a private board, from cache as long as cache was obtained `< ttl` ago.
+
+    Args:
+        id (int): Board id.
+        yr (int): Year.
+        force_update (bool, optional): Skip cache regardless of ttl and get board from server. Defaults to False.
+        ttl (int, optional): Cache ttl. Defaults to 900.
+
+    Returns:
+        board (dict): Raw leaderboard data.
+    """
     if op.exists(f"aocstat/cache/lb_{yr}_{id}") and not force_update:
         cached_lb = None
         with open(f"aocstat/cache/lb_{yr}_{id}", "rb") as f:
             cached_lb = pickle.load(f)
         if time.time() - cached_lb["time"] <= ttl:
-            return cached_lb["content"]
+            return json.loads(cached_lb["content"])
 
     cookie = get_cookie()
     lb = rq.get(
@@ -119,4 +131,4 @@ def get_priv_board(id, yr, force_update=False, ttl=900):
         }
         pickle.dump(lb_tocache, f)
 
-    return lb.content
+    return json.loads(lb.content)
