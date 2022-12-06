@@ -1,5 +1,6 @@
 import datetime as dt
 import json
+import os
 import os.path as op
 import pickle
 import re
@@ -166,3 +167,10 @@ def get_priv_board(id=None, yr=None, force_update=False, ttl=900):
         pickle.dump(lb_tocache, f)
 
     return json.loads(lb.content)
+
+
+def purge_cache():
+    """Purges the cache."""
+    for file in os.listdir("aocstat/cache/"):
+        if not file == ".gitkeep":
+            os.remove(f"aocstat/cache/{file}")
