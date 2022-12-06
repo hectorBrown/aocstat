@@ -1,9 +1,11 @@
 import argparse
 import sys
 
+import aocstat.api as api
+import aocstat.format as fmt
 
-def start(args=sys.argv):
-    args = args[1:]
+
+def start(args=sys.argv[1:]):
     parser = argparse.ArgumentParser(
         description="Interact with Advent of Code from your terminal."
     )
@@ -14,14 +16,14 @@ def start(args=sys.argv):
         lb(args=args["subcommand_args"])
 
 
-def lb(args=sys.argv):
+def lb(args=sys.argv[1:]):
     parser = argparse.ArgumentParser(
-        description="Access and modify public and private Advent of Code leaderboards."
+        description="Interact with Advent of Code leaderboards."
     )
     parser.add_argument(
         "-y",
         "--year",
-        nargs=1,
+        action="store",
         metavar="YEAR",
         help="Specify a year other than the most recent event.",
     )
@@ -48,7 +50,12 @@ def lb(args=sys.argv):
         + "Please use responsibly (preferably not at all) and be considerate of others, especially in December!",
     )
     args = vars(parser.parse_args(args))
-    print(args)
+    if not args["global"]:
+        # TODO: read config file to get custom ttl
+        _lb = api.get_priv_lb(
+            id=args["id"], yr=args["year"], force_update=args["force"]
+        )
+        print(fmt.format_priv_lb(_lb))
 
 
 if __name__ == "__main__":
