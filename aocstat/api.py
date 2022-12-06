@@ -1,7 +1,6 @@
-import json
 import os.path as op
 import pickle
-import webbrowser as wb
+import time
 
 import requests as rq
 from selenium import webdriver
@@ -65,7 +64,6 @@ def get_cookie(cache_invalid=False):
             wd.get("https://adventofcode.com/2022/auth/login")
             print("\nPlease authenticate yourself with one of the methods given.")
 
-            timeout = False
             try:
                 WebDriverWait(wd, timeout=1000, poll_frequency=1).until(
                     lambda d: "[Log Out]"
@@ -94,7 +92,31 @@ def get_cookie(cache_invalid=False):
         return cookie
 
 
-def get_board(id, cache):
-    # check the cache directory for board at id
-    # if no cache, pull from api
-    pass
+def get_priv_board(id, yr, force_update=False, ttl=900):
+    if op.exists(f"aocstat/cache/lb_{yr}_{id}") and not force_update:
+        cached_lb = None
+        with open(f"aocstat/cache/lb_{yr}_{id}", "rb") as f:
+            cached_lb = pickle.load(f)
+        if time.time() - cached_lb["time"] <= ttl:
+            return cached_lb["content"]
+
+    cookie = get_cookie()
+    lb = rq.get(
+        f"https://adventofcode.com/{yr}/leaderboard/private/view/{id}.json",
+        cookies={"session": cookie},
+    )
+    # i.e. is HTML
+    if lb.content[0] == "<":
+        cookie = get_cookie(cache_invalid=True)
+        lb = rq.get(
+            f"https://adventofcode.com/{yr}/leaderboard/private/view/{id}.json",
+            cookies={"session": cookie},
+        )
+    with open(f"aocstat/cache/lb_{yr}_{id}", "wb") as f:
+        lb_tocache = {
+            "time": time.time(),
+            "content": lb.content,
+        }
+        pickle.dump(lb_tocache, f)
+
+    return lb.content
