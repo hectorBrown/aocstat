@@ -97,6 +97,11 @@ def get_cookie(cache_invalid=False):
 
 
 def get_id():
+    """Gets user id from cache unless it doesn't exist yet, otherwise makes a request.
+
+    Returns:
+        id (int): User id.
+    """
     if op.exists("aocstat/cache/id"):
         with open("aocstat/cache/id", "rb") as f:
             return pickle.load(f)
