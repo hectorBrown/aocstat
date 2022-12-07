@@ -142,7 +142,7 @@ def get_priv_lb(id=None, yr=None, force_update=False, req_freq=900):
         id = get_id()
 
     if (
-        op.exists("aocstat/cache/req")
+        op.exists("aocstat/cache/priv_req")
         and op.exists(f"aocstat/cache/lb_{yr}_{id}")
         and not force_update
     ):
@@ -150,7 +150,7 @@ def get_priv_lb(id=None, yr=None, force_update=False, req_freq=900):
         req_time = None
         with open(f"aocstat/cache/lb_{yr}_{id}", "rb") as f:
             cached_lb = pickle.load(f)
-        with open("aocstat/cache/req", "rb") as f:
+        with open("aocstat/cache/priv_req", "rb") as f:
             req_time = pickle.load(f)
 
         if time.time() - req_time <= req_freq:
@@ -172,7 +172,7 @@ def get_priv_lb(id=None, yr=None, force_update=False, req_freq=900):
 
     with open(f"aocstat/cache/lb_{yr}_{id}", "wb") as f:
         pickle.dump(lb_content, f)
-    with open(f"aocstat/cache/req", "wb") as f:
+    with open(f"aocstat/cache/priv_req", "wb") as f:
         pickle.dump(time.time(), f)
 
     return lb_content
