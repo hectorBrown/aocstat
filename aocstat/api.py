@@ -40,7 +40,7 @@ def get_cookie(cache_invalid=False):
         )
         valid_browser = False
         while not valid_browser:
-            selection = input("Selection ([1],2,3,4,5,6): ")
+            selection = input("Selection ([1],2,3,4,5,6): ").strip()
             if selection in [""] + [str(x) for x in range(1, 7)]:
                 valid_browser = True
             else:
@@ -91,7 +91,7 @@ def get_cookie(cache_invalid=False):
                 + "3) Open the network tools in your browser, refresh the page and examine the GET request for cookies.\n"
                 + "4) Copy everything after 'session=' into the field below."
             )
-            cookie = input("session=")
+            cookie = input("session=").strip()
             print("\nSaved.")
 
         with open("aocstat/cache/cookie", "wb") as f:
