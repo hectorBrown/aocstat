@@ -10,7 +10,7 @@ def format_priv_lb(lb):
     Returns:
         lb_str (str): A 'pretty' string representing the leaderboard.
     """
-    res = ""
+    res = "\n"
     # establish left offset from numbering digits & score digits
     members = sorted(
         lb["members"].keys(),
