@@ -10,6 +10,8 @@ def format_priv_lb(lb):
     Returns:
         lb_str (str): A 'pretty' string representing the leaderboard.
     """
+    # TODO: display time cached when cached
+    # TODO: allow ordering selection
     res = "\n"
     # establish left offset from numbering digits & score digits
     members = sorted(

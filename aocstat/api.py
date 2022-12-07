@@ -186,6 +186,7 @@ def get_priv_lb(id=None, yr=None, force_update=False, ttl=900):
         if time.time() - cached_lb["time"] <= ttl:
             return json.loads(cached_lb["content"])
 
+    # TODO: read cache if no internet connection
     cookie = get_cookie()
     lb = rq.get(
         f"https://adventofcode.com/{yr}/leaderboard/private/view/{id}.json",
@@ -209,6 +210,7 @@ def get_priv_lb(id=None, yr=None, force_update=False, ttl=900):
 
 
 def get_glob_lb(yr=None, day=None):
+    # TODO: read cache if no internet connection
 
     if yr is None:
         yr = get_year()
