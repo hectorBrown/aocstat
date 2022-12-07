@@ -122,14 +122,14 @@ def get_id():
     return id
 
 
-def get_priv_lb(id=None, yr=None, force_update=False, ttl=900):
-    """Gets a private board, from cache as long as cache was obtained `< ttl` ago.
+def get_priv_lb(id=None, yr=None, force_update=False, req_freq=900):
+    """Gets a private board, from cache as long as the last request was made `< req_freq` ago.
 
     Args:
         id (int, optional): Board id. Defaults to None: gets user ID from cache or request.
         yr (int, optional): Year. Defaults to None: uses current year.
         force_update (bool, optional): Skip cache regardless of ttl and get board from server. Defaults to False.
-        ttl (int, optional): Cache ttl. Defaults to 900.
+        req_freq (int, optional): Lower bound on period between requests in seconds. Defaults to 900.
 
     Returns:
         board (dict): Raw leaderboard data.
@@ -141,33 +141,41 @@ def get_priv_lb(id=None, yr=None, force_update=False, ttl=900):
     if id is None:
         id = get_id()
 
-    if op.exists(f"aocstat/cache/lb_{yr}_{id}") and not force_update:
+    if (
+        op.exists("aocstat/cache/req")
+        and op.exists(f"aocstat/cache/lb_{yr}_{id}")
+        and not force_update
+    ):
         cached_lb = None
+        req_time = None
         with open(f"aocstat/cache/lb_{yr}_{id}", "rb") as f:
             cached_lb = pickle.load(f)
-        if time.time() - cached_lb["time"] <= ttl:
-            return json.loads(cached_lb["content"])
+        with open("aocstat/cache/req", "rb") as f:
+            req_time = pickle.load(f)
+
+        if time.time() - req_time <= req_freq:
+            return cached_lb
 
     cookie = get_cookie()
     lb = rq.get(
         f"https://adventofcode.com/{yr}/leaderboard/private/view/{id}.json",
         cookies={"session": cookie},
     )
-    # i.e. is HTML
-    if lb.content[0] == "<":
+    if lb.content[0] == "<":  # i.e. is HTML
         cookie = get_cookie(cache_invalid=True)
         lb = rq.get(
             f"https://adventofcode.com/{yr}/leaderboard/private/view/{id}.json",
             cookies={"session": cookie},
         )
-    with open(f"aocstat/cache/lb_{yr}_{id}", "wb") as f:
-        lb_tocache = {
-            "time": time.time(),
-            "content": lb.content,
-        }
-        pickle.dump(lb_tocache, f)
 
-    return json.loads(lb.content)
+    lb_content = json.loads(lb.content)
+
+    with open(f"aocstat/cache/lb_{yr}_{id}", "wb") as f:
+        pickle.dump(lb_content, f)
+    with open(f"aocstat/cache/req", "wb") as f:
+        pickle.dump(time.time(), f)
+
+    return lb_content
 
 
 def purge_cache():
