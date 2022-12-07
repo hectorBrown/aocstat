@@ -98,6 +98,39 @@ def get_cookie(cache_invalid=False):
         return cookie
 
 
+def get_year():
+    """Returns the year of the most recent AOC event.
+
+    Returns:
+        year (int): The year of the most recent AOC event.
+    """
+    today = dt.date.today()
+    return today.year if today.month == 12 else today.year - 1
+
+
+def get_day(year):
+    """Get the active (i.e. most recently released) day for a given year.
+
+    Args:
+        year (int): The year of interest.
+
+    Raises:
+        ValueError: If the event in `year` hasn't begun yet.
+
+    Returns:
+        day (int): The most recently released day for `year`.
+    """
+    today = dt.date.today()
+    if (today.year == year and today.month != 12) or year > today.year:
+        raise ValueError(
+            "You are trying to get the active day for an event that hasn't happened yet."
+        )
+    elif today.year == year:
+        return today.day if today.day <= 25 else 25
+    else:
+        return 25
+
+
 def get_id():
     """Gets user id from cache unless it doesn't exist yet, otherwise makes a request.
 
@@ -136,7 +169,7 @@ def get_priv_lb(id=None, yr=None, force_update=False, ttl=900):
     """
 
     if yr is None:
-        yr = dt.date.today().year
+        yr = get_year()
 
     if id is None:
         id = get_id()

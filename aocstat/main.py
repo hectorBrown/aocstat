@@ -1,8 +1,12 @@
 import argparse
+import os
 import sys
 
 import aocstat.api as api
 import aocstat.format as fmt
+
+# make ANSI colour work on win
+os.system("")
 
 
 def start(args=sys.argv[1:]):
