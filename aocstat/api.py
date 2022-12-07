@@ -5,6 +5,7 @@ import os.path as op
 import pickle
 import re
 import time
+from datetime import timezone
 
 import requests as rq
 from bs4 import BeautifulSoup
@@ -126,7 +127,11 @@ def get_day(year):
             "You are trying to get the active day for an event that hasn't happened yet."
         )
     elif today.year == year:
-        return today.day if today.day <= 25 else 25
+        return (
+            (today.day if dt.datetime.now(timezone.utc).hour > 5 else today.day - 1)
+            if today.day <= 25
+            else 25
+        )
     else:
         return 25
 
