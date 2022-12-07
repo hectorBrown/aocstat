@@ -208,6 +208,50 @@ def get_priv_lb(id=None, yr=None, force_update=False, ttl=900):
     return json.loads(lb.content)
 
 
+def get_glob_lb(yr=None, day=None):
+
+    if yr is None:
+        yr = get_year()
+
+    if day is None:  # overall lb
+        lb_raw = rq.get("https://adventofcode.com/2022/leaderboard")
+        lb_soup = BeautifulSoup(lb_raw.content, "html.parser")
+        entries_soup = lb_soup.find_all("div", {"class": "leaderboard-entry"})
+        lb = {}
+        last_pos = None
+
+        for entry_soup in entries_soup:
+            entry = {}
+            id = int(entry_soup.get("data-user-id"))
+
+            lb_pos = entry_soup.find("span", {"class": "leaderboard-position"})
+            if not lb_pos is None:
+                pos = int(lb_pos.contents[0][2:-1])
+                entry["position"] = pos
+                last_pos = pos
+            else:
+                entry["position"] = last_pos
+
+            entry["totalscore"] = int(
+                entry_soup.find("span", {"class": "leaderboard-totalscore"}).contents[0]
+            )
+
+            name_link = entry_soup.find("a")
+            if not name_link is None:
+                entry["name"] = name_link.contents[-1]
+            else:
+                entry["name"] = entry_soup.contents[-1]
+
+            lb[id] = entry
+
+        print(lb)
+        return lb
+
+    else:  # lb by day
+        # TODO : implement global lb by day
+        pass
+
+
 def purge_cache():
     """Purges the cache."""
     for file in os.listdir("aocstat/cache/"):
