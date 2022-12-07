@@ -128,7 +128,7 @@ def get_day(year):
         )
     elif today.year == year:
         return (
-            (today.day if dt.datetime.now(timezone.utc).hour > 5 else today.day - 1)
+            (today.day if dt.datetime.now(timezone.utc).hour >= 5 else today.day - 1)
             if today.day <= 25
             else 25
         )
