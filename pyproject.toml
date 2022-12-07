@@ -19,3 +19,4 @@ build-backend = "poetry.core.masonry.api"
 [tool.poetry.scripts]
 aocstat = "aocstat.main:start"
 aocstat-lb = "aocstat.main:lb"
+aocstat-purge = "aocstat.main:purge"

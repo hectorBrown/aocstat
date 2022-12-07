@@ -14,10 +14,12 @@ def start(args=sys.argv[1:]):
         description="Interact with Advent of Code from your terminal."
     )
     parser.add_argument("subcommand", choices=["lb", "purge"])
-    parser.add_argument("subcommand_args", nargs=argparse.REMAINDER)
+    parser.add_argument("subcommand args", nargs=argparse.REMAINDER)
     args = vars(parser.parse_args(args))
     if args["subcommand"] == "lb":
-        lb(args=args["subcommand_args"])
+        lb(args=args["subcommand args"])
+    elif args["subcommand"] == "purge":
+        purge(args=args["subcommand args"])
 
 
 def lb(args=sys.argv[1:]):
@@ -66,6 +68,13 @@ def lb(args=sys.argv[1:]):
             id=args["id"], yr=args["year"], force_update=args["force"]
         )
         print(fmt.format_priv_lb(_lb))
+
+
+def purge(args=sys.argv[1:]):
+    parser = argparse.ArgumentParser(description="Purge aocstat cache.")
+    parser.parse_args(args)
+    api.purge_cache()
+    print("Cache purged.")
 
 
 if __name__ == "__main__":

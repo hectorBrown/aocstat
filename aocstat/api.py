@@ -81,7 +81,7 @@ def get_cookie(cache_invalid=False):
 
             cookie = wd.get_cookie("session")["value"]
             wd.quit()
-            print("\nAuthenticated.\n")
+            print("\nAuthenticated.")
         else:
             print(
                 "\nBrave!\n"
@@ -91,7 +91,7 @@ def get_cookie(cache_invalid=False):
                 + "4) Copy everything after 'session=' into the field below."
             )
             cookie = input("session=")
-            print("\nSaved.\n")
+            print("\nSaved.")
 
         with open("aocstat/cache/cookie", "wb") as f:
             pickle.dump(cookie, f)
