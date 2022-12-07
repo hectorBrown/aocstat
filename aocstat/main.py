@@ -29,12 +29,16 @@ def lb(args=sys.argv[1:]):
         "--year",
         action="store",
         metavar="YEAR",
+        choices=range(2015, api.get_year() + 1),
+        type=int,
         help="Specify a year other than the most recent event.",
     )
     priv_glob = parser.add_mutually_exclusive_group()
     priv_glob.add_argument(
         "--id",
         metavar="ID",
+        type=int,
+        # TODO: restrict choices to available leaderboards/aliases
         help="Specify a private leaderboard id other than your own. Cannot be used with '-g, --global'",
     )
     priv_glob.add_argument(
@@ -43,6 +47,8 @@ def lb(args=sys.argv[1:]):
         default=False,
         nargs="?",
         metavar="DAY",
+        type=int,
+        choices=range(1, 26),  # this still allows invalid days
         help="View the global leaderboard. optionally include a day number in the range [1..25]. Cannot be used with '--id'",
     )
     parser.add_argument(
