@@ -20,14 +20,14 @@ def format_priv_lb(lb):
     l_offset = rank_offset + 2 + score_offset + 1
 
     # append the '11111122222' line
-    res += " " * (l_offset + 9) + "1" * 10 + "2" * 6 + "\n"
+    res += " " * (l_offset + 18) + "1 " * 10 + "2 " * 6 + "\n"
     # append the '123456...' line
     res += (
         " " * (l_offset)
         + "".join(
-            [str(i) for i in range(1, 10)]
-            + [str(i) for i in range(10)]
-            + [str(i) for i in range(6)]
+            [str(i) + " " for i in range(1, 10)]
+            + [str(i) + " " for i in range(10)]
+            + [str(i) + " " for i in range(6)]
         )
         + "\n"
     )
@@ -49,11 +49,11 @@ def format_priv_lb(lb):
         for day in range(1, 26):
             if str(day) in completion:
                 if str("2") in completion[str(day)]:
-                    res += "*"
+                    res += "* "
                 else:
-                    res += "."
+                    res += ". "
             else:
-                res += " "
+                res += "  "
         res += "  "
         # add names
         res += lb["members"][member]["name"] + "\n"
