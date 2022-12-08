@@ -13,7 +13,11 @@ def start(args=sys.argv[1:]):
     parser = argparse.ArgumentParser(
         description="Interact with Advent of Code from your terminal."
     )
-    parser.add_argument("subcommand", choices=["lb", "purge"])
+    parser.add_argument(
+        "subcommand",
+        choices=["lb", "purge"],
+        help="Subcommand to use. Available options are 'lb' (leaderboard) or 'purge' (purge cache).",
+    )
     parser.add_argument("subcommand args", nargs=argparse.REMAINDER)
     args = vars(parser.parse_args(args))
     if args["subcommand"] == "lb":
@@ -50,7 +54,6 @@ def lb(args=sys.argv[1:]):
         nargs="?",
         metavar="DAY",
         type=int,
-        choices=range(1, 26),  # this still allows invalid days
         help="View the global leaderboard. optionally include a day number in the form ('[1..25]:[1,2]') where the number after the colon denotes which part to view. Cannot be used with '--id'",
     )
     parser.add_argument(
@@ -69,6 +72,7 @@ def lb(args=sys.argv[1:]):
         )
         print(fmt.format_priv_lb(_lb))
     else:
+        # TODO: check day:part is valid
         _lb = api.get_glob_lb(yr=args["year"], day=args["global"])
         print(fmt.format_glob_lb(_lb))
 
