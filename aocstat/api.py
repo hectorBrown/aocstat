@@ -148,7 +148,7 @@ def get_id():
 
     cookie = get_cookie()
     req = rq.get(
-        f"https://adventofcode.com/{dt.date.today().year}/settings",
+        f"https://adventofcode.com/{get_year()}/settings",
         cookies={"session": cookie},
     )
     soup = BeautifulSoup(req.content, "html.parser")
