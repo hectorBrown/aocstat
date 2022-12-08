@@ -219,7 +219,7 @@ def get_glob_lb(yr=None, day=None):
         lb_raw = rq.get("https://adventofcode.com/2022/leaderboard")
         lb_soup = BeautifulSoup(lb_raw.content, "html.parser")
         entries_soup = lb_soup.find_all("div", {"class": "leaderboard-entry"})
-        lb = {}
+        lb = {"members": {}, "day": None}
         last_pos = None
 
         for entry_soup in entries_soup:
@@ -228,13 +228,13 @@ def get_glob_lb(yr=None, day=None):
 
             lb_pos = entry_soup.find("span", {"class": "leaderboard-position"})
             if not lb_pos is None:
-                pos = int(lb_pos.contents[0][2:-1])
-                entry["position"] = pos
+                pos = int(re.findall("\d*\)", lb_pos.contents[0])[0][:-1])
+                entry["rank"] = pos
                 last_pos = pos
             else:
-                entry["position"] = last_pos
+                entry["rank"] = last_pos
 
-            entry["totalscore"] = int(
+            entry["total_score"] = int(
                 entry_soup.find("span", {"class": "leaderboard-totalscore"}).contents[0]
             )
 
@@ -242,11 +242,14 @@ def get_glob_lb(yr=None, day=None):
             if not name_link is None:
                 entry["name"] = name_link.contents[-1]
             else:
-                entry["name"] = entry_soup.contents[-1]
+                anon_name = entry_soup.find("span", {"class": "leaderboard-anon"})
+                if anon_name is None:
+                    entry["name"] = entry_soup.contents[-1]
+                else:
+                    entry["name"] = anon_name.contents[0]
 
-            lb[id] = entry
+            lb["members"][id] = entry
 
-        print(lb)
         return lb
 
     else:  # lb by day

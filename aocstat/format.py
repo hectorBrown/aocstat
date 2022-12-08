@@ -1,3 +1,5 @@
+import re
+
 import aocstat.api as api
 
 
@@ -57,6 +59,7 @@ def format_priv_lb(lb):
     )
 
     # append members row by row
+    user_id = api.get_id()
     for i, member in enumerate(members):
         score = lb["members"][member]["local_score"]
         # setup axis
@@ -83,7 +86,6 @@ def format_priv_lb(lb):
                 res += "  "
         res += "  "
         # add names
-        user_id = api.get_id()
         res += (
             ("\033[1;96m" if user_id == int(member) else "\033[0;97m")
             + lb["members"][member]["name"]
@@ -91,3 +93,46 @@ def format_priv_lb(lb):
         )
 
     return res
+
+
+def format_glob_lb(lb):
+    if lb["day"] is None:
+        res = "\n"
+        members = sorted(
+            lb["members"].keys(),
+            key=lambda x: lb["members"][x]["total_score"],
+            reverse=True,
+        )
+
+        rank_offset = len(str(lb["members"][members[-1]]["rank"]))
+        score_offset = len(str(lb["members"][members[0]]["total_score"]))
+
+        # append members row by row
+        user_id = api.get_id()
+        for member in members:
+            score = lb["members"][member]["total_score"]
+            rank = lb["members"][member]["rank"]
+            # setup axis
+            res += (
+                "\033[0;97m"
+                + " " * (rank_offset - len(str(rank)))
+                + str(rank)
+                + ") "
+                + " " * (score_offset - len(str(score)))
+                + str(score)
+                + "  "
+            )
+            # add name
+            colour = None
+            if user_id == member:
+                colour = "\033[1;96m"
+            elif bool(
+                re.search("\(anonymous user #\d+\)", lb["members"][member]["name"])
+            ):
+                colour = "\033[0;37m"
+            else:
+                colour = "\033[0;32m"
+
+            res += colour + lb["members"][member]["name"] + "\n"
+
+        return res

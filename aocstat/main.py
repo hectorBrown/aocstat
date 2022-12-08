@@ -51,7 +51,7 @@ def lb(args=sys.argv[1:]):
         metavar="DAY",
         type=int,
         choices=range(1, 26),  # this still allows invalid days
-        help="View the global leaderboard. optionally include a day number in the range [1..25]. Cannot be used with '--id'",
+        help="View the global leaderboard. optionally include a day number in the form ('[1..25]:[1,2]') where the number after the colon denotes which part to view. Cannot be used with '--id'",
     )
     parser.add_argument(
         "-f",
@@ -62,16 +62,19 @@ def lb(args=sys.argv[1:]):
         + "Please use responsibly (preferably not at all) and be considerate of others, especially in December!",
     )
     args = vars(parser.parse_args(args))
-    if not args["global"]:
+    if args["global"] == False:
         # TODO: read config file to get custom ttl
         _lb = api.get_priv_lb(
             id=args["id"], yr=args["year"], force_update=args["force"]
         )
         print(fmt.format_priv_lb(_lb))
+    else:
+        _lb = api.get_glob_lb(yr=args["year"], day=args["global"])
+        print(fmt.format_glob_lb(_lb))
 
 
 def purge(args=sys.argv[1:]):
-    parser = argparse.ArgumentParser(description="Purge aocstat cache.")
+    parser = argparse.ArgumentParser(description="Purge program cache.")
     parser.parse_args(args)
     api.purge_cache()
     print("Cache purged.")
