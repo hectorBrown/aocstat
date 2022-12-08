@@ -43,7 +43,7 @@ def lb(args=sys.argv[1:]):
     priv_glob.add_argument(
         "--id",
         metavar="ID",
-        type=int,
+        type=int,  # this will need to change to allow aliases, maybe done better with choices=
         # TODO: restrict choices to available leaderboards/aliases
         help="Specify a private leaderboard id other than your own. Cannot be used with '-g, --global'",
     )
