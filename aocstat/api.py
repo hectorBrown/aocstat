@@ -242,7 +242,6 @@ def get_glob_lb(yr=None, day=None):
                 "a", {"href": re.compile(r"^https:\/\/github\.com\/.+$")}
             )
             if not name_link is None:
-                print("name link")
                 entry["name"] = name_link.contents[-1]
             else:
                 anon_name = entry_soup.find("span", {"class": "leaderboard-anon"})
