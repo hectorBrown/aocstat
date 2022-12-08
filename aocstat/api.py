@@ -238,16 +238,24 @@ def get_glob_lb(yr=None, day=None):
                 entry_soup.find("span", {"class": "leaderboard-totalscore"}).contents[0]
             )
 
-            name_link = entry_soup.find("a")
+            name_link = entry_soup.find(
+                "a", {"href": re.compile(r"^https:\/\/github\.com\/.+$")}
+            )
             if not name_link is None:
+                print("name link")
                 entry["name"] = name_link.contents[-1]
             else:
                 anon_name = entry_soup.find("span", {"class": "leaderboard-anon"})
-                if anon_name is None:
-                    entry["name"] = entry_soup.contents[-1]
-                else:
+                if not anon_name is None:
                     entry["name"] = anon_name.contents[0]
-
+                else:
+                    aoc_support_link = entry_soup.find(
+                        "a", {"title": "Advent of Code Supporter"}
+                    )
+                    if not aoc_support_link is None:
+                        entry["name"] = entry_soup.contents[-2]
+                    else:
+                        entry["name"] = entry_soup.contents[-1]
             lb["members"][id] = entry
 
         return lb
