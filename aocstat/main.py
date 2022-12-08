@@ -82,7 +82,3 @@ def purge(args=sys.argv[1:]):
     parser.parse_args(args)
     api.purge_cache()
     print("Cache purged.")
-
-
-if __name__ == "__main__":
-    start()
