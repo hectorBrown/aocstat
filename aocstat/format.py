@@ -81,7 +81,7 @@ def format_priv_lb(lb):
                 else:
                     res += "\033[1;94m* "
             elif day <= api.get_day(int(lb["event"])):
-                res += "\033[0;37m* "
+                res += "\033[1;90m* "
             else:
                 res += "  "
         res += "  "
