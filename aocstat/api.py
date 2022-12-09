@@ -81,7 +81,7 @@ def get_cookie(cache_invalid=False):
                     return False
 
             try:
-                WebDriverWait(wd, timeout=1000, poll_frequency=1).until(logged_in)
+                WebDriverWait(wd, timeout=1000, poll_frequency=0.5).until(logged_in)
             except TimeoutException:
                 print("\nTimed out waiting for authentication.\n")
                 wd.quit()
