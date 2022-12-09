@@ -1,5 +1,6 @@
 import argparse
 import os
+import os.path as op
 import sys
 
 import aocstat.api as api
@@ -10,6 +11,8 @@ os.system("")
 
 
 def start(args=sys.argv[1:]):
+    if not op.exists(api.data_dir):
+        os.mkdir(api.data_dir)
     parser = argparse.ArgumentParser(
         description="Interact with Advent of Code from your terminal."
     )

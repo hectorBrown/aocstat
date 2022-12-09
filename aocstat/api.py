@@ -8,11 +8,14 @@ import time
 from datetime import timezone
 
 import requests as rq
+from appdirs import *
 from bs4 import BeautifulSoup
 from selenium import webdriver
-from selenium.common.exceptions import TimeoutException
+from selenium.common.exceptions import StaleElementReferenceException, TimeoutException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
+
+data_dir = user_data_dir(appname="aocstat", appauthor=False)
 
 
 def get_cookie(cache_invalid=False):
@@ -24,8 +27,8 @@ def get_cookie(cache_invalid=False):
     Returns:
         cookie (str): Session cookie.
     """
-    if op.exists("aocstat/cache/cookie") and not cache_invalid:
-        with open("aocstat/cache/cookie", "rb") as f:
+    if op.exists(f"{data_dir}/cookie") and not cache_invalid:
+        with open(f"{data_dir}/cookie", "rb") as f:
             return pickle.load(f)
     else:
         # get cookie with selenium
@@ -71,8 +74,11 @@ def get_cookie(cache_invalid=False):
             print("\nPlease authenticate yourself with one of the methods given.")
 
             def logged_in(wd):
-                links = wd.find_elements(By.TAG_NAME, "a")
-                return "[Log Out]" in [link.text for link in links]
+                try:
+                    links = wd.find_elements(By.TAG_NAME, "a")
+                    return "[Log Out]" in [link.text for link in links]
+                except StaleElementReferenceException:
+                    return False
 
             try:
                 WebDriverWait(wd, timeout=1000, poll_frequency=1).until(logged_in)
@@ -94,7 +100,7 @@ def get_cookie(cache_invalid=False):
             cookie = input("session=").strip()
             print("\nSaved.")
 
-        with open("aocstat/cache/cookie", "wb") as f:
+        with open(f"{data_dir}/cookie", "wb") as f:
             pickle.dump(cookie, f)
         return cookie
 
@@ -142,8 +148,8 @@ def get_id():
     Returns:
         id (int): User id.
     """
-    if op.exists("aocstat/cache/id"):
-        with open("aocstat/cache/id", "rb") as f:
+    if op.exists(f"{data_dir}/id"):
+        with open(f"{data_dir}/id", "rb") as f:
             return pickle.load(f)
 
     cookie = get_cookie()
@@ -155,7 +161,7 @@ def get_id():
     id = int(
         soup.find(string=re.compile("\(anonymous user #(\d+)\)")).split("#")[1][:-1]
     )
-    with open("aocstat/cache/id", "wb") as f:
+    with open(f"{data_dir}/id", "wb") as f:
         pickle.dump(id, f)
     return id
 
@@ -179,9 +185,9 @@ def get_priv_lb(id=None, yr=None, force_update=False, ttl=900):
     if id is None:
         id = get_id()
 
-    if op.exists(f"aocstat/cache/lb_{yr}_{id}") and not force_update:
+    if op.exists(f"{data_dir}/lb_{yr}_{id}") and not force_update:
         cached_lb = None
-        with open(f"aocstat/cache/lb_{yr}_{id}", "rb") as f:
+        with open(f"{data_dir}/lb_{yr}_{id}", "rb") as f:
             cached_lb = pickle.load(f)
         if time.time() - cached_lb["time"] <= ttl:
             return json.loads(cached_lb["content"])
@@ -199,7 +205,7 @@ def get_priv_lb(id=None, yr=None, force_update=False, ttl=900):
             f"https://adventofcode.com/{yr}/leaderboard/private/view/{id}.json",
             cookies={"session": cookie},
         )
-    with open(f"aocstat/cache/lb_{yr}_{id}", "wb") as f:
+    with open(f"{data_dir}/lb_{yr}_{id}", "wb") as f:
         lb_tocache = {
             "time": time.time(),
             "content": lb.content,
@@ -266,6 +272,6 @@ def get_glob_lb(yr=None, day=None):
 
 def purge_cache():
     """Purges the cache."""
-    for file in os.listdir("aocstat/cache/"):
+    for file in os.listdir(data_dir):
         if not file == ".gitkeep":
-            os.remove(f"aocstat/cache/{file}")
+            os.remove(f"{data_dir}/{file}")
