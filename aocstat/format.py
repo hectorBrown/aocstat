@@ -96,6 +96,7 @@ def format_priv_lb(lb):
 
 
 def format_glob_lb(lb):
+    #TODO: dynamic columns
     if lb["day"] is None:
         res = "\n"
         members = sorted(
