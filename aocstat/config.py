@@ -14,12 +14,7 @@ def read_config(path):
     if not op.exists(path):
         return None
     with open(path, "r") as f:
-        try:
-            return json.loads(f.read())
-        except json.decoder.JSONDecodeError:
-            raise json.decoder.JSONDecodeError(
-                f"Improperly formatted config file at '{path}'."
-            )
+        return json.loads(f.read())
 
 
 def write_config(path, data):
@@ -32,5 +27,5 @@ def write_config(path, data):
     curr = read_config(path)
     with open(path, "w") as f:
         for key in data:
-            curr[key] = data[key]
-        f.write(json.dump(curr, indent=4))
+            curr[key] = data[key]  # type: ignore
+        json.dump(curr, f, indent=4)

@@ -38,6 +38,7 @@ def get_cookie(cache_invalid=False):
             + "6) 'I'll do it myself'"
         )
         valid_browser = False
+        selection = None
         while not valid_browser:
             selection = input("Selection ([1],2,3,4,5,6): ")
             if selection in [""] + [str(x) for x in range(1, 7)]:
@@ -58,7 +59,7 @@ def get_cookie(cache_invalid=False):
                     wd = webdriver.Edge()
                 elif selection == "4":
                     wd = webdriver.Ie()
-                elif selection == "5":
+                else:
                     wd = webdriver.Safari()
             except Exception:
                 print(
@@ -79,7 +80,7 @@ def get_cookie(cache_invalid=False):
                 print("\nTimed out waiting for authentication.\n")
                 wd.quit()
 
-            cookie = wd.get_cookie("session")["value"]
+            cookie = wd.get_cookie("session")["value"]  # type: ignore
             wd.quit()
             print("\nAuthenticated.\n")
         else:
@@ -115,7 +116,9 @@ def get_id():
     )
     soup = BeautifulSoup(req.content, "html.parser")
     id = int(
-        soup.find(string=re.compile("\(anonymous user #(\d+)\)")).split("#")[1][:-1]
+        soup.find(string=re.compile("\(anonymous user #(\d+)\)")).split("#")[1][  # type: ignore
+            :-1
+        ]
     )
     with open("aocstat/cache/id", "wb") as f:
         pickle.dump(id, f)
@@ -172,7 +175,7 @@ def get_priv_lb(id=None, yr=None, force_update=False, req_freq=900):
 
     with open(f"aocstat/cache/lb_{yr}_{id}", "wb") as f:
         pickle.dump(lb_content, f)
-    with open(f"aocstat/cache/priv_req", "wb") as f:
+    with open("aocstat/cache/priv_req", "wb") as f:
         pickle.dump(time.time(), f)
 
     return lb_content
