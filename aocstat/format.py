@@ -107,7 +107,16 @@ def format_priv_lb(lb, cached):
 
 
 def format_glob_lb(lb, cached):
-    # TODO: dynamic columns
+    """Return a string representing a global leaderboard `lb`.
+
+    Args:
+        lb (dict): Leaderboard to represent.
+        cached (int | bool): Unix timestamp of the last time the leaderboard was cached. False if not cached.
+
+    Returns:
+        lb_str (str): A 'pretty' string representing the leaderboard.
+    """
+
     res = ""
     if cached:
         res += f"\033[0;37mLeaderboard cached at {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(cached))}\n"
