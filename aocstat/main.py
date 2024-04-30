@@ -23,21 +23,22 @@ def start(args=sys.argv[1:]):
     )
     parser.add_argument(
         "subcommand",
-        choices=["lb", "purge"],
-        help="Subcommand to use. Available options are 'lb' (leaderboard) or 'purge' (purge cache).",
+        choices=["lb", "purge", "config"],
+        help="Subcommand to use. Available options are 'lb' (leaderboard), 'purge' (purge cache), or 'config' (view and edit config values).",
     )
     parser.add_argument("subcommand args", nargs=argparse.REMAINDER)
     args = vars(parser.parse_args(args))
     if args["subcommand"] == "lb":
-        lb(args=args["subcommand args"])
+        _lb(args=args["subcommand args"])
     elif args["subcommand"] == "purge":
-        purge(args=args["subcommand args"])
-    # TODO: subcommand to edit config
+        _purge(args=args["subcommand args"])
+    elif args["subcommand"] == "config":
+        _config(args=args["subcommand args"])
 
 
-def lb(args=sys.argv[1:]):
+def _lb(args=sys.argv[1:]):
     parser = argparse.ArgumentParser(
-        description="Interact with Advent of Code leaderboards."
+        prog="aocstat lb", description="Interact with Advent of Code leaderboards."
     )
     parser.add_argument(
         "-y",
@@ -118,11 +119,77 @@ def lb(args=sys.argv[1:]):
         print(fmt.format_glob_lb(_lb))
 
 
-def purge(args=sys.argv[1:]):
-    parser = argparse.ArgumentParser(description="Purge program cache.")
+def _purge(args=sys.argv[1:]):
+    parser = argparse.ArgumentParser(
+        prog="aocstat purge", description="Purge program cache."
+    )
     parser.parse_args(args)
-    api.purge_cache()
-    print("Cache purged.")
+    args = vars(parser.parse_args(args))
+    if args:
+        parser.error("No arguments allowed with 'purge' subcommand.")
+    else:
+        api.purge_cache()
+        print("Cache purged.")
+
+
+def _config(args=sys.argv[1:]):
+    parser = argparse.ArgumentParser(
+        prog="aocstat config", description="View and edit config values."
+    )
+    parser.add_argument(
+        "subcommand",
+        choices=["list", "get", "set", "reset"],
+        help="Subcommand to use. Available options are 'list' (list all config values), 'get' (get a config value), or 'set' (edit a config value).",
+    )
+    parser.add_argument("subcommand args", nargs=argparse.REMAINDER)
+    args1 = vars(parser.parse_args(args))
+    if args1["subcommand"] == "list":
+        if args1["subcommand args"]:
+            parser.error("No arguments allowed with 'list' subcommand.")
+        else:
+            for key in config.DEFAULTS:
+                print(f"{key}: {config.get(key)}")
+    else:
+        parser = argparse.ArgumentParser(
+            prog=f"aocstat config {args1["subcommand"]}",
+            description="View and edit config values.",
+        )
+        if args1["subcommand"] == "reset":
+            parser.add_argument(
+                "-k",
+                "--key",
+                action="store",
+                choices=config.DEFAULTS.keys(),
+                help="Key to get or set. If not provided, resets all keys to default values.",
+            )
+        else:
+            parser.add_argument(
+                "key",
+                action="store",
+                choices=config.DEFAULTS.keys(),
+                help="Key to get or set.",
+            )
+            if args1["subcommand"] == "set":
+                parser.add_argument(
+                    "value",
+                    action="store",
+                    help="Value to set key to.",
+                )
+        args2 = vars(parser.parse_args(args1["subcommand args"]))
+
+        if args1["subcommand"] == "get":
+            print(config.get(args2["key"]))
+        elif args1["subcommand"] == "set":
+            try:
+                config.set(args2["key"], args2["value"])
+            except TypeError:
+                raise argparse.ArgumentTypeError(config.TYPE_ERRS[args2["key"]])
+        elif args1["subcommand"] == "reset":
+            if not args2["key"]:
+                for key in config.DEFAULTS:
+                    config.reset(key)
+            else:
+                config.reset(args2["key"])
 
 
 if __name__ == "__main__":

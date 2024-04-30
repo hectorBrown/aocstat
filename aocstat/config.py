@@ -8,6 +8,13 @@ config_dir = ad.user_config_dir(appname="aocstat", appauthor=False)
 DEFAULTS = {
     "ttl": 900,
 }
+# types defined so that they raise an error if the value is not of the correct type, but return value in correct type if it is castable
+TYPES = {
+    "ttl": lambda x: int(x),
+}
+TYPE_ERRS = {
+    "ttl": "Value of 'ttl' must be an integer.",
+}
 
 
 def get(key):
@@ -35,7 +42,24 @@ def set(key, value):
         key (string): Key to set in config file.
         value: Value to set `key` to in config file.
     """
-    _write_config(op.join(config_dir, "config.json"), {key: value})
+    write_value = None
+    try:
+        write_value = TYPES[key](value)
+    except:  # noqa
+        raise TypeError(TYPE_ERRS[key])
+
+    _write_config(op.join(config_dir, "config.json"), {key: write_value})
+
+
+def reset(key):
+    """Resets the value of `key` in the config file to the default value.
+
+    Args:
+        key (string): Key to reset in config file.
+    """
+    config = _read_config(op.join(config_dir, "config.json"))
+    if config is not None and key in config:
+        _write_config(op.join(config_dir, "config.json"), {key: DEFAULTS[key]})
 
 
 def _read_config(path):
@@ -71,4 +95,5 @@ def _write_config(path, data):
     curr = {} if curr is None else curr
     for key in data:
         curr[key] = data[key]
-    json.dump(curr, indent=4, fp=path)
+    with open(path, "w") as f:
+        json.dump(curr, indent=4, fp=f)
