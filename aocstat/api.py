@@ -172,11 +172,11 @@ def get_id():
     return id
 
 
-def get_priv_lb(id=None, yr=None, force_update=False, ttl=900):
+def get_priv_lb(id, yr=None, force_update=False, ttl=900):
     """Gets a private board, from cache as long as cache was obtained `< ttl` ago.
 
     Args:
-        id (int, optional): Board id. Defaults to None: gets user ID from cache or request.
+        id (int): Board id.
         yr (int, optional): Year. Defaults to None: uses current year.
         force_update (bool, optional): Skip cache regardless of ttl and get board from server. Defaults to False.
         ttl (int, optional): Cache ttl. Defaults to 900.
@@ -187,9 +187,6 @@ def get_priv_lb(id=None, yr=None, force_update=False, ttl=900):
 
     if yr is None:
         yr = get_year()
-
-    if id is None:
-        id = get_id()
 
     if op.exists(f"{data_dir}/lb_{yr}_{id}") and not force_update:
         cached_lb = None
@@ -274,6 +271,35 @@ def get_glob_lb(yr=None, day=None):
     else:  # lb by day
         # TODO : implement global lb by day
         pass
+
+
+def get_lb_ids(ttl=900):
+    if op.exists(f"{data_dir}/lb_ids"):
+        cached_lb_ids = None
+        with open(f"{data_dir}/lb_ids", "rb") as f:
+            cached_lb_ids = pickle.load(f)
+        if time.time() - cached_lb_ids["time"] <= ttl:
+            return cached_lb_ids["content"]
+
+    cookie = get_cookie()
+    lbs_raw = rq.get(
+        f"https://adventofcode.com/{get_year()}/leaderboard/private",
+        cookies={"session": cookie},
+    )
+    lbs_soup = BeautifulSoup(lbs_raw.content, "html.parser")
+    lb_ids = [
+        int(link.attrs["href"].split("view/")[1])
+        for link in lbs_soup.find_all("a", string="[View]")
+    ]
+    with open(f"{data_dir}/lb_ids", "wb") as f:
+        pickle.dump(
+            {
+                "time": time.time(),
+                "content": lb_ids,
+            },
+            f,
+        )
+    return lb_ids
 
 
 def purge_cache():

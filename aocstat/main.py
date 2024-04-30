@@ -44,12 +44,22 @@ def lb(args=sys.argv[1:]):
         help="Specify a year other than the most recent event.",
     )
     priv_glob = parser.add_mutually_exclusive_group()
+
+    def lb_id_type(arg):
+        lb_ids = api.get_lb_ids()
+        if arg in [str(x) for x in lb_ids]:
+            return int(arg)
+        else:
+            raise argparse.ArgumentTypeError(
+                f"Invalid leaderboard id '{arg}'. Must be one of {lb_ids}."
+            )
+
     priv_glob.add_argument(
         "--id",
         metavar="ID",
-        type=int,  # this will need to change to allow aliases, maybe done better with choices=
-        # TODO: restrict choices to available leaderboards/aliases
+        type=lb_id_type,
         help="Specify a private leaderboard id other than your own. Cannot be used with '-g, --global'",
+        # TODO: set default to your lb if exists otherwise alternate
     )
 
     def glob_lb_day_type(arg):
