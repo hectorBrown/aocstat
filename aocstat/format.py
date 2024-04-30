@@ -25,6 +25,9 @@ def _colour(text, colour, ansi_on, alt_text=None):
     )
 
 
+# TODO: maybe add aoc++ and sponsor tags to the leaderboards?
+
+
 def format_priv_lb(lb, cached, ansi_on):
     """Return a string representing a leaderboard `lb`.
 
