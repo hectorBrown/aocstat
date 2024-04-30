@@ -1,9 +1,10 @@
 import re
+import time
 
 import aocstat.api as api
 
 
-def format_priv_lb(lb):
+def format_priv_lb(lb, cached):
     """Return a string representing a leaderboard `lb`.
 
     Args:
@@ -12,9 +13,11 @@ def format_priv_lb(lb):
     Returns:
         lb_str (str): A 'pretty' string representing the leaderboard.
     """
-    # TODO: display time cached when cached
+    res = ""
+    if cached:
+        res += f"\033[0;37mLeaderboard cached at {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(cached))}\n"
+    res += "\n"
     # TODO: allow ordering selection
-    res = "\n"
     # establish left offset from numbering digits & score digits
     members = sorted(
         lb["members"].keys(),
@@ -105,6 +108,7 @@ def format_priv_lb(lb):
 
 def format_glob_lb(lb):
     # TODO: dynamic columns
+    # TODO: display time cached when cached
     if lb["day"] is None:
         res = "\n"
         members = sorted(

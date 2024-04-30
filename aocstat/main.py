@@ -111,7 +111,7 @@ def _lb(args=sys.argv[1:]):
             _lb = api.get_priv_lb(
                 id=args["id"], yr=args["year"], force_update=args["force"]
             )
-            print(fmt.format_priv_lb(_lb))
+            print(fmt.format_priv_lb(*_lb))
         else:
             _lb = api.get_glob_lb(yr=args["year"], day=args["global"])
             print(fmt.format_glob_lb(_lb))

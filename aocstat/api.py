@@ -185,6 +185,7 @@ def get_priv_lb(id, yr, force_update=False):
 
     Returns:
         board (dict): Raw leaderboard data.
+        cached (bool | float): Whether the board was cached or not (i.e. if it was obtained from the server or not). If it was cached, the time it was cached is returned.
     """
 
     if op.exists(f"{data_dir}/lb_{yr}_{id}") and not force_update:
@@ -192,9 +193,10 @@ def get_priv_lb(id, yr, force_update=False):
         with open(f"{data_dir}/lb_{yr}_{id}", "rb") as f:
             cached_lb = pickle.load(f)
         if time.time() - cached_lb["time"] <= config.get("ttl"):
-            return json.loads(cached_lb["content"])
+            return (json.loads(cached_lb["content"]), cached_lb["time"])
+        elif not connected():
+            return (json.loads(cached_lb["content"]), cached_lb["time"])
 
-    # TODO: read cache if no internet connection
     cookie = get_cookie()
     lb = rq.get(
         f"https://adventofcode.com/{yr}/leaderboard/private/view/{id}.json",
@@ -214,12 +216,13 @@ def get_priv_lb(id, yr, force_update=False):
         }
         pickle.dump(lb_tocache, f)
 
-    return json.loads(lb.content)
+    return (json.loads(lb.content), False)
 
 
 def get_glob_lb(yr, day):
     # TODO: docstring
     # TODO: read cache if no internet connection
+    # TODO: cache these
 
     if day is None:  # overall lb
         lb_raw = rq.get(f"https://adventofcode.com/{yr}/leaderboard")
@@ -285,6 +288,8 @@ def get_lb_ids(force_update=False):
             cached_lb_ids = pickle.load(f)
         if time.time() - cached_lb_ids["time"] <= config.get("ttl"):
             return cached_lb_ids["content"]
+        elif not connected():
+            return cached_lb_ids["content"]
 
     cookie = get_cookie()
     lbs_raw = rq.get(
@@ -312,3 +317,12 @@ def purge_cache():
     for file in os.listdir(data_dir):
         if not file == ".gitkeep":
             os.remove(f"{data_dir}/{file}")
+
+
+def connected():
+    """Check if the user is connected to Advent of Code."""
+    try:
+        rq.get("https://adventofcode.com/")
+        return True
+    except rq.exceptions.ConnectionError:
+        return False
