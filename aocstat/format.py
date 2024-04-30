@@ -5,23 +5,43 @@ import time
 
 import aocstat.api as api
 
+ANSI_COLOURS = {
+    "grey": "\033[0;37m",
+    "bright_green": "\033[1;92m",
+    "bright_yellow": "\033[1;93m",
+    "bright_blue": "\033[1;94m",
+    "bright_grey": "\033[1;90m",
+    "bright_cyan": "\033[1;96m",
+    "bright_white": "\033[1;97m",
+    "green": "\033[0;32m",
+}
 
-def format_priv_lb(lb, cached, colour):
+
+def _colour(text, colour, ansi_on, alt_text=None):
+    return (
+        (ANSI_COLOURS[colour] + text + "\033[0;97m")
+        if ansi_on
+        else (text if alt_text is None else alt_text)
+    )
+
+
+def format_priv_lb(lb, cached, ansi_on):
     """Return a string representing a leaderboard `lb`.
 
     Args:
         lb (dict): Leaderboard to represent.
         cached (int | bool): Unix timestamp of the last time the leaderboard was cached. False if not cached.
-        colour (bool): Whether to use ANSI colour codes.
+        ansi_on (bool): Whether to use ANSI colour codes.
 
     Returns:
         lb_str (str): A 'pretty' string representing the leaderboard.
     """
     res = ""
     if cached:
-        res += (
-            ("\033[0;37m" if colour else "")
-            + f"Leaderboard cached at {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(cached))}\n"
+        res += _colour(
+            f"Leaderboard cached at {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(cached))}\n",
+            "grey",
+            ansi_on,
         )
     res += "\n"
     # TODO: allow ordering selection
@@ -44,15 +64,18 @@ def format_priv_lb(lb, cached, colour):
         + "".join(
             [
                 (
-                    (
-                        "\033[0;92m"
-                        if i < api.get_most_recent_day(int(lb["event"]))
-                        else "\033[0;37m"
+                    _colour(
+                        str(day_labels_1[i]),
+                        (
+                            "bright_green"
+                            if i < api.get_most_recent_day(int(lb["event"]))
+                            else "grey"
+                        ),
+                        ansi_on,
                     )
-                    if colour
-                    else ""
+                    if day_labels_1[i] is not None
+                    else " "
                 )
-                + (str(day_labels_1[i]) if day_labels_1[i] is not None else " ")
                 + " "
                 for i in range(25)
             ]
@@ -68,16 +91,15 @@ def format_priv_lb(lb, cached, colour):
         " " * (l_offset + 1)
         + "".join(
             [
-                (
+                _colour(
+                    str(day_labels_2[i]),
                     (
-                        "\033[0;92m"
+                        "bright_green"
                         if i < api.get_most_recent_day(int(lb["event"]))
-                        else "\033[0;37m"
-                    )
-                    if colour
-                    else ""
+                        else "grey"
+                    ),
+                    ansi_on,
                 )
-                + str(day_labels_2[i])
                 + " "
                 for i in range(25)
             ]
@@ -91,8 +113,7 @@ def format_priv_lb(lb, cached, colour):
         score = lb["members"][member]["local_score"]
         # setup axis
         res += (
-            ("\033[0;97m" if colour else "")
-            + " " * (rank_offset - len(str(i + 1)))
+            " " * (rank_offset - len(str(i + 1)))
             + str(i + 1)
             + ") "
             + " " * (score_offset - len(str(score)))
@@ -104,35 +125,34 @@ def format_priv_lb(lb, cached, colour):
         for day in range(1, 26):
             if str(day) in completion:
                 if str("2") in completion[str(day)]:
-                    res += "\033[1;93m* " if colour else "* "
+                    res += _colour("* ", "bright_yellow", ansi_on)
                 else:
-                    res += "\033[1;94m* " if colour else "- "
+                    res += _colour("* ", "bright_blue", ansi_on, alt_text="- ")
             elif day <= api.get_most_recent_day(int(lb["event"])):
-                res += "\033[1;90m* " if colour else ". "
+                res += _colour("* ", "bright_grey", ansi_on, alt_text=". ")
             else:
                 res += "  "
         res += "  "
         # add names
         res += (
-            (
-                ("\033[1;96m" if user_id == int(member) else "\033[0;97m")
-                if colour
-                else ""
+            +_colour(
+                lb["members"][member]["name"],
+                "bright_cyan" if user_id == int(member) else "bright_white",
+                ansi_on,
             )
-            + lb["members"][member]["name"]
             + "\n"
         )
 
     return res
 
 
-def format_glob_lb(lb, cached, colour):
+def format_glob_lb(lb, cached, ansi_on):
     """Return a string representing a global leaderboard `lb`.
 
     Args:
         lb (dict): Leaderboard to represent.
         cached (int | bool): Unix timestamp of the last time the leaderboard was cached. False if not cached.
-        colour (bool): Whether to use ANSI colour codes.
+        ansi_on (bool): Whether to use ANSI colour codes.
 
     Returns:
         lb_str (str): A 'pretty' string representing the leaderboard.
@@ -140,9 +160,10 @@ def format_glob_lb(lb, cached, colour):
 
     res = ""
     if cached:
-        res += (
-            ("\033[0;37m" if colour else "")
-            + f"Leaderboard cached at {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(cached))}\n"
+        res += _colour(
+            f"Leaderboard cached at {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(cached))}\n",
+            "grey",
+            ansi_on,
         )
     res += "\n"
     members = sorted(
@@ -165,15 +186,12 @@ def format_glob_lb(lb, cached, colour):
         score = (
             str(entry["total_score"])
             if lb["day"] is None
-            else (
-                "\033[0;37m" + entry["time"] + "\033[0;97m" if colour else entry["time"]
-            )
+            else _colour(entry["time"], "grey", ansi_on)
         )
         rank = entry["rank"]
         # setup axis
         res += (
-            ("\033[0;97m" if colour else "")
-            + " " * (rank_offset - len(str(rank)))
+            " " * (rank_offset - len(str(rank)))
             + str(rank)
             + ") "
             + " " * (score_offset - len(str(score)))
@@ -181,18 +199,18 @@ def format_glob_lb(lb, cached, colour):
             + "  "
         )
         # add name
-        user_col = None
-        if user_id == member:
-            user_col = "\033[1;96m"
-        elif entry["anon"]:
-            user_col = "\033[0;37m"
-        else:
-            user_col = "\033[0;32m"
-
-        if not colour:
-            user_col = ""
-
-        res += user_col + entry["name"].strip() + "\n"
+        res += (
+            _colour(
+                entry["name"].strip(),
+                (
+                    "bright_cyan"
+                    if user_id == member
+                    else ("grey" if entry["anon"] else "green")
+                ),
+                ansi_on,
+            )
+            + "\n"
+        )
 
     return res
 

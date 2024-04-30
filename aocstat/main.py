@@ -127,13 +127,13 @@ def _lb(args=sys.argv[1:]):
             _lb = api.get_priv_lb(
                 id=args["id"], yr=args["year"], force_update=args["force"]
             )
-            output = fmt.format_priv_lb(*_lb, colour=not args["no_colour"])
+            output = fmt.format_priv_lb(*_lb, ansi_on=not args["no_colour"])
         else:
             _lb = api.get_glob_lb(yr=args["year"], day=args["global"])
-            output = fmt.format_glob_lb(*_lb, colour=not args["no_colour"])
+            output = fmt.format_glob_lb(*_lb, ansi_on=not args["no_colour"])
     else:
         _lb = api.get_glob_lb(yr=args["year"], day=args["day"])
-        output = fmt.format_glob_lb(*_lb, colour=not args["no_colour"])
+        output = fmt.format_glob_lb(*_lb, ansi_on=not args["no_colour"])
     if args["columns"] is not None:
         output = fmt.columnize(output, args["columns"])
     print(output)
