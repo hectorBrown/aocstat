@@ -48,6 +48,7 @@ def _lb(args=sys.argv[1:]):
         choices=range(2015, api.get_most_recent_year() + 1),
         type=int,
         help="Specify a year other than the most recent event.",
+        default=api.get_most_recent_year(),
     )
 
     def glob_lb_day_type(arg):
