@@ -114,10 +114,10 @@ def _lb(args=sys.argv[1:]):
             print(fmt.format_priv_lb(*_lb))
         else:
             _lb = api.get_glob_lb(yr=args["year"], day=args["global"])
-            print(fmt.format_glob_lb(_lb))
+            print(fmt.format_glob_lb(*_lb))
     else:
         _lb = api.get_glob_lb(yr=args["year"], day=args["day"])
-        print(fmt.format_glob_lb(_lb))
+        print(fmt.format_glob_lb(*_lb))
 
 
 def _purge(args=sys.argv[1:]):

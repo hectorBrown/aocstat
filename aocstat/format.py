@@ -106,46 +106,54 @@ def format_priv_lb(lb, cached):
     return res
 
 
-def format_glob_lb(lb):
+def format_glob_lb(lb, cached):
     # TODO: dynamic columns
-    # TODO: display time cached when cached
-    if lb["day"] is None:
-        res = "\n"
-        members = sorted(
-            lb["members"].keys(),
-            key=lambda x: lb["members"][x]["total_score"],
-            reverse=True,
+    res = ""
+    if cached:
+        res += f"\033[0;37mLeaderboard cached at {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(cached))}\n"
+    res += "\n"
+    members = sorted(
+        lb["members"].keys(),
+        key=lambda x: (
+            lb["members"][x]["total_score"]
+            if lb["day"] is None
+            else 100 - lb["members"][x]["rank"]
+        ),
+        reverse=True,
+    )
+
+    rank_offset = len(str(lb["members"][members[-1]]["rank"]))
+    score_offset = len(str(lb["members"][members[0]]["total_score"]))
+
+    # append members row by row
+    user_id = api.get_user_id()
+    for member in members:
+        entry = lb["members"][member]
+        score = (
+            str(entry["total_score"])
+            if lb["day"] is None
+            else "\033[0;37m" + entry["time"] + "\033[0;97m"
         )
+        rank = entry["rank"]
+        # setup axis
+        res += (
+            "\033[0;97m"
+            + " " * (rank_offset - len(str(rank)))
+            + str(rank)
+            + ") "
+            + " " * (score_offset - len(str(score)))
+            + score
+            + "  "
+        )
+        # add name
+        colour = None
+        if user_id == member:
+            colour = "\033[1;96m"
+        elif entry["anon"]:
+            colour = "\033[0;37m"
+        else:
+            colour = "\033[0;32m"
 
-        rank_offset = len(str(lb["members"][members[-1]]["rank"]))
-        score_offset = len(str(lb["members"][members[0]]["total_score"]))
+        res += colour + entry["name"] + "\n"
 
-        # append members row by row
-        user_id = api.get_user_id()
-        for member in members:
-            score = lb["members"][member]["total_score"]
-            rank = lb["members"][member]["rank"]
-            # setup axis
-            res += (
-                "\033[0;97m"
-                + " " * (rank_offset - len(str(rank)))
-                + str(rank)
-                + ") "
-                + " " * (score_offset - len(str(score)))
-                + str(score)
-                + "  "
-            )
-            # add name
-            colour = None
-            if user_id == member:
-                colour = "\033[1;96m"
-            elif bool(
-                re.search(r"\(anonymous user #\d+\)", lb["members"][member]["name"])
-            ):
-                colour = "\033[0;37m"
-            else:
-                colour = "\033[0;32m"
-
-            res += colour + lb["members"][member]["name"] + "\n"
-
-        return res
+    return res

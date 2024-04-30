@@ -10,7 +10,7 @@ from datetime import timezone
 
 import appdirs as ad
 import requests as rq
-from bs4 import BeautifulSoup, NavigableString
+from bs4 import BeautifulSoup, NavigableString, Tag
 from selenium import webdriver
 from selenium.common.exceptions import (StaleElementReferenceException,
                                         TimeoutException)
@@ -219,58 +219,102 @@ def get_priv_lb(id, yr, force_update=False):
     return (json.loads(lb.content), False)
 
 
+def _parse_leaderboard_entry(entry_soup, last_pos):
+    entry = {}
+
+    lb_pos = entry_soup.find("span", {"class": "leaderboard-position"})
+    if lb_pos is not None:
+        pos = int(re.findall(r"\d*\)", lb_pos.contents[0])[0][:-1])
+        entry["rank"] = pos
+        last_pos = pos
+    else:
+        # this happens if the user has the same score as the previous user
+        entry["rank"] = last_pos
+
+    total_score = entry_soup.find("span", {"class": "leaderboard-totalscore"})
+    entry["total_score"] = int(total_score) if total_score is not None else None
+
+    # first we check to see if they have a linked github
+    name_link = entry_soup.find(
+        "a", {"href": re.compile(r"^https:\/\/github\.com\/.+$")}
+    )
+    anon_name = entry_soup.find("span", {"class": "leaderboard-anon"})
+    time = entry_soup.find("span", {"class": "leaderboard-time"})
+    if name_link is not None:
+        entry["name"] = name_link.contents[-1]
+    else:
+        # then to see if they are an anonomous user
+        if anon_name is not None:
+            entry["name"] = anon_name.contents[0]
+        else:
+            # if they are not their name should be the only filled plaintext element
+            entry["name"] = [
+                x.strip()
+                for x in entry_soup.contents
+                if isinstance(x, NavigableString)
+                if x.strip() != ""
+            ][0]
+    # collect some other data
+    entry["supporter"] = bool(entry_soup.find("a", {"class": "supporter-badge"}))
+    entry["sponsor"] = bool(entry_soup.find("a", {"class": "sponsor-badge"}))
+    entry["anon"] = bool(anon_name)
+    entry["link"] = name_link.attrs["href"] if name_link is not None else None
+    entry["time"] = time.contents[0] if time is not None else None
+    return entry, last_pos
+
+
 def get_glob_lb(yr, day):
     # TODO: docstring
-    # TODO: read cache if no internet connection
-    # TODO: cache these
+    if op.exists(f"{data_dir}/glb_{yr}_{day}") and not connected():
+        cached_lb = None
+        with open(f"{data_dir}/glb_{yr}_{day}", "rb") as f:
+            cached_lb = pickle.load(f)
+            return (json.loads(cached_lb["content"]), cached_lb["time"])
 
-    if day is None:  # overall lb
-        lb_raw = rq.get(f"https://adventofcode.com/{yr}/leaderboard")
-        lb_soup = BeautifulSoup(lb_raw.content, "html.parser")
+    lb_raw = (
+        rq.get(f"https://adventofcode.com/{yr}/leaderboard")
+        if day is None
+        else rq.get(
+            f"https://adventofcode.com/{yr}/leaderboard/day/{day.split(":")[0]}"
+        )
+    )
+    lb_soup = BeautifulSoup(lb_raw.content, "html.parser")
+
+    if day is None:
         entries_soup = lb_soup.find_all("div", {"class": "leaderboard-entry"})
-        lb = {"members": {}, "day": None}
-        last_pos = None
-
-        for entry_soup in entries_soup:
-            entry = {}
-            id = int(entry_soup.get("data-user-id"))
-
-            lb_pos = entry_soup.find("span", {"class": "leaderboard-position"})
-            if lb_pos is not None:
-                pos = int(re.findall(r"\d*\)", lb_pos.contents[0])[0][:-1])
-                entry["rank"] = pos
-                last_pos = pos
-            else:
-                entry["rank"] = last_pos
-
-            entry["total_score"] = int(
-                entry_soup.find("span", {"class": "leaderboard-totalscore"}).contents[0]
+    else:
+        split = lb_soup.find(
+            "span", {"class": "leaderboard-daydesc-first"}, recursive=True
+        ).parent  # pyright: ignore
+        entries_soup = [
+            x
+            for x in (
+                split.previous_siblings  # pyright: ignore
+                if day.split(":")[1] == "2"
+                else split.next_siblings  # pyright: ignore
             )
+            if isinstance(x, Tag)
+            if "class" in x.attrs
+            if "leaderboard-entry" in x.attrs["class"]
+        ]
 
-            name_link = entry_soup.find(
-                "a", {"href": re.compile(r"^https:\/\/github\.com\/.+$")}
-            )
-            if name_link is not None:
-                entry["name"] = name_link.contents[-1]
-            else:
-                anon_name = entry_soup.find("span", {"class": "leaderboard-anon"})
-                if anon_name is not None:
-                    entry["name"] = anon_name.contents[0]
-                else:
-                    aoc_support_link = entry_soup.find(
-                        "a", {"title": "Advent of Code Supporter"}
-                    )
-                    if aoc_support_link is not None:
-                        entry["name"] = entry_soup.contents[-2]
-                    else:
-                        entry["name"] = entry_soup.contents[-1]
-            lb["members"][id] = entry
+    lb = {"members": {}, "day": day}
+    last_pos = None
 
-        return lb
+    for entry_soup in entries_soup:
+        id = int(entry_soup.get("data-user-id"))  # pyright: ignore
+        lb["members"][id], last_pos = _parse_leaderboard_entry(entry_soup, last_pos)
 
-    else:  # lb by day
-        # TODO : implement global lb by day
-        pass
+    lb["day"] = day
+
+    with open(f"{data_dir}/glb_{yr}_{day}", "wb") as f:
+        lb_tocache = {
+            "time": time.time(),
+            "content": json.dumps(lb),
+        }
+        pickle.dump(lb_tocache, f)
+
+    return (lb, False)
 
 
 def get_lb_ids(force_update=False):
