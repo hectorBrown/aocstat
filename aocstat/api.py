@@ -266,7 +266,16 @@ def _parse_leaderboard_entry(entry_soup, last_pos):
 
 
 def get_glob_lb(yr, day):
-    # TODO: docstring
+    """Gets the global leaderboard, from the internet as long as the user is connected, and caches it. If the user is not connected, the cached leaderboard is returned.
+
+    Args:
+        yr (int): Year of the event.
+        day (str): Day of the event in the form 'd:p' where d is the day and p is the part.
+
+    Returns:
+        lb (dict): Raw leaderboard data.
+        cached (bool | float): Whether the board was cached or not (i.e. if it was obtained from the server or not). If it was cached, the time it was cached is returned.
+    """
     if op.exists(f"{data_dir}/glb_{yr}_{day}") and not connected():
         cached_lb = None
         with open(f"{data_dir}/glb_{yr}_{day}", "rb") as f:
