@@ -232,7 +232,9 @@ def _parse_leaderboard_entry(entry_soup, last_pos):
         entry["rank"] = last_pos
 
     total_score = entry_soup.find("span", {"class": "leaderboard-totalscore"})
-    entry["total_score"] = int(total_score) if total_score is not None else None
+    entry["total_score"] = (
+        int(total_score.contents[0]) if total_score is not None else None
+    )
 
     # first we check to see if they have a linked github
     name_link = entry_soup.find(

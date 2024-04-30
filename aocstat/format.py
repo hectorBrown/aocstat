@@ -1,4 +1,6 @@
+import math
 import re
+import shutil
 import time
 
 import aocstat.api as api
@@ -163,6 +165,37 @@ def format_glob_lb(lb, cached):
         else:
             colour = "\033[0;32m"
 
-        res += colour + entry["name"] + "\n"
+        res += colour + entry["name"].strip() + "\n"
 
     return res
+
+
+def _term_len(text):
+    return len(re.sub(r"\033\[[0-9;]*m", "", text))
+
+
+def columnize(text, padding):
+    """Return a string with columns of text automatically aligned with terminal width.
+
+    Args:
+        text (str): Text to columnize.
+        padding (int): Padding between columns.
+
+    Returns:
+        col_text (str): Columnized text.
+    """
+    width = shutil.get_terminal_size().columns
+    width = 200
+    lines = [x for x in text.split("\n") if x != ""]
+    col_width = max([_term_len(line) for line in lines]) + padding
+    no_cols = width // col_width
+    if no_cols == 0:
+        no_cols = 1
+
+    col_text = ""
+    for i in range(0, math.ceil(len(lines) / no_cols)):
+        for j in range(i, len(lines), math.ceil(len(lines) / no_cols)):
+            col_text += lines[j] + " " * (col_width - _term_len(lines[j]))
+        col_text += "\n"
+
+    return col_text

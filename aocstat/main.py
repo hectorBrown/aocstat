@@ -50,6 +50,11 @@ def _lb(args=sys.argv[1:]):
         help="Specify a year other than the most recent event.",
         default=api.get_most_recent_year(),
     )
+    parser.add_argument(
+        "--no-colour",
+        action="store_true",
+        help="Disable ANSI colour output.",
+    )
 
     def glob_lb_day_type(arg):
         if re.match(r"^(0?[1-9]|1[0-9]|2[0-5]):[12]$", arg):
@@ -105,19 +110,33 @@ def _lb(args=sys.argv[1:]):
         help="Force update leaderboard, even if within the cache ttl. "
         + "Please use responsibly (preferably not at all) and be considerate of others, especially in December!",
     )
+    parser.add_argument(
+        "-c",
+        "--columns",
+        default=None,
+        const=1,
+        type=int,
+        action="store",
+        nargs="?",
+        help="Print the leaderboard in multiple columns with the specified padding.",
+    )
     args = vars(parser.parse_args(args))
+    output = None
     if api.get_lb_ids():
         if args["global"] is False:
             _lb = api.get_priv_lb(
                 id=args["id"], yr=args["year"], force_update=args["force"]
             )
-            print(fmt.format_priv_lb(*_lb))
+            output = fmt.format_priv_lb(*_lb)
         else:
             _lb = api.get_glob_lb(yr=args["year"], day=args["global"])
-            print(fmt.format_glob_lb(*_lb))
+            output = fmt.format_glob_lb(*_lb)
     else:
         _lb = api.get_glob_lb(yr=args["year"], day=args["day"])
-        print(fmt.format_glob_lb(*_lb))
+        output = fmt.format_glob_lb(*_lb)
+    if args["columns"] is not None:
+        output = fmt.columnize(output, args["columns"])
+    print(output)
 
 
 def _purge(args=sys.argv[1:]):
