@@ -1,7 +1,7 @@
 import argparse
-import re
 import os
 import os.path as op
+import re
 import sys
 
 import aocstat.api as api
@@ -51,11 +51,15 @@ def lb(args=sys.argv[1:]):
         # TODO: restrict choices to available leaderboards/aliases
         help="Specify a private leaderboard id other than your own. Cannot be used with '-g, --global'",
     )
+
     def glob_lb_day_type(arg):
         if re.match(r"^(0?[1-9]|1[0-9]|2[0-5]):[12]$", arg):
             return arg
         else:
-            raise argparse.ArgumentTypeError("day:part must be in the form 'd:p' where d is the day and p is the part.")
+            raise argparse.ArgumentTypeError(
+                "day:part must be in the form 'd:p' where d is the day and p is the part."
+            )
+
     priv_glob.add_argument(
         "-g",
         "--global",
@@ -74,7 +78,7 @@ def lb(args=sys.argv[1:]):
         + "Please use responsibly (preferably not at all) and be considerate of others, especially in December!",
     )
     args = vars(parser.parse_args(args))
-    if args["global"] == False:
+    if args["global"] is False:
         # TODO: read config file to get custom ttl
         _lb = api.get_priv_lb(
             id=args["id"], yr=args["year"], force_update=args["force"]

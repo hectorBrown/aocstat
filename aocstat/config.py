@@ -16,9 +16,11 @@ def read_config(path):
     with open(path, "r") as f:
         try:
             return json.loads(f.read())
-        except json.decoder.JSONDecodeError:
+        except json.decoder.JSONDecodeError as e:
             raise json.decoder.JSONDecodeError(
-                f"Improperly formatted config file at '{path}'."
+                "Improperly formatted config file.",
+                doc=e.doc,
+                pos=e.pos,
             )
 
 
@@ -30,7 +32,7 @@ def write_config(path, data):
         data (dict): Dictionary of data to add to config file.
     """
     curr = read_config(path)
-    with open(path, "w") as f:
-        for key in data:
-            curr[key] = data[key]
-        f.write(json.dump(curr, indent=4))
+    curr = {} if curr is None else curr
+    for key in data:
+        curr[key] = data[key]
+    json.dump(curr, indent=4, fp=path)

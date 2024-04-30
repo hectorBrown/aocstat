@@ -33,7 +33,7 @@ def format_priv_lb(lb):
         + "".join(
             [
                 ("\033[0;92m" if i < api.get_day(int(lb["event"])) else "\033[0;37m")
-                + (str(day_labels_1[i]) if not day_labels_1[i] is None else " ")
+                + (str(day_labels_1[i]) if day_labels_1[i] is not None else " ")
                 + " "
                 for i in range(25)
             ]
@@ -96,7 +96,7 @@ def format_priv_lb(lb):
 
 
 def format_glob_lb(lb):
-    #TODO: dynamic columns
+    # TODO: dynamic columns
     if lb["day"] is None:
         res = "\n"
         members = sorted(
@@ -128,7 +128,7 @@ def format_glob_lb(lb):
             if user_id == member:
                 colour = "\033[1;96m"
             elif bool(
-                re.search("\(anonymous user #\d+\)", lb["members"][member]["name"])
+                re.search(r"\(anonymous user #\d+\)", lb["members"][member]["name"])
             ):
                 colour = "\033[0;37m"
             else:

@@ -5,17 +5,19 @@ import os.path as op
 import pickle
 import re
 import time
+import typing
 from datetime import timezone
 
+import appdirs as ad
 import requests as rq
-from appdirs import *
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, NavigableString
 from selenium import webdriver
-from selenium.common.exceptions import StaleElementReferenceException, TimeoutException
+from selenium.common.exceptions import (StaleElementReferenceException,
+                                        TimeoutException)
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
 
-data_dir = user_data_dir(appname="aocstat", appauthor=False)
+data_dir = ad.user_data_dir(appname="aocstat", appauthor=False)
 
 
 def get_cookie(cache_invalid=False):
@@ -72,7 +74,7 @@ def get_cookie(cache_invalid=False):
                 )
                 return get_cookie(cache_invalid=cache_invalid)
 
-            wd.get("https://adventofcode.com/2022/auth/login")
+            wd.get("https://adventofcode.com/2022/auth/login")  # pyright: ignore
             print("\nPlease authenticate yourself with one of the methods given.")
 
             def logged_in(wd):
@@ -86,10 +88,10 @@ def get_cookie(cache_invalid=False):
                 WebDriverWait(wd, timeout=1000, poll_frequency=0.5).until(logged_in)
             except TimeoutException:
                 print("\nTimed out waiting for authentication.\n")
-                wd.quit()
+                wd.quit()  # pyright: ignore
 
-            cookie = wd.get_cookie("session")["value"]
-            wd.quit()
+            cookie = wd.get_cookie("session")["value"]  # pyright: ignore
+            wd.quit()  # pyright: ignore
             print("\nAuthenticated.")
         else:
             print(
@@ -161,7 +163,9 @@ def get_id():
     )
     soup = BeautifulSoup(req.content, "html.parser")
     id = int(
-        soup.find(string=re.compile("\(anonymous user #(\d+)\)")).split("#")[1][:-1]
+        typing.cast(
+            NavigableString, soup.find(string=re.compile(r"\(anonymous user #(\d+)\)"))
+        ).split("#")[1][:-1]
     )
     with open(f"{data_dir}/id", "wb") as f:
         pickle.dump(id, f)
@@ -235,8 +239,8 @@ def get_glob_lb(yr=None, day=None):
             id = int(entry_soup.get("data-user-id"))
 
             lb_pos = entry_soup.find("span", {"class": "leaderboard-position"})
-            if not lb_pos is None:
-                pos = int(re.findall("\d*\)", lb_pos.contents[0])[0][:-1])
+            if lb_pos is not None:
+                pos = int(re.findall(r"\d*\)", lb_pos.contents[0])[0][:-1])
                 entry["rank"] = pos
                 last_pos = pos
             else:
@@ -249,17 +253,17 @@ def get_glob_lb(yr=None, day=None):
             name_link = entry_soup.find(
                 "a", {"href": re.compile(r"^https:\/\/github\.com\/.+$")}
             )
-            if not name_link is None:
+            if name_link is not None:
                 entry["name"] = name_link.contents[-1]
             else:
                 anon_name = entry_soup.find("span", {"class": "leaderboard-anon"})
-                if not anon_name is None:
+                if anon_name is not None:
                     entry["name"] = anon_name.contents[0]
                 else:
                     aoc_support_link = entry_soup.find(
                         "a", {"title": "Advent of Code Supporter"}
                     )
-                    if not aoc_support_link is None:
+                    if aoc_support_link is not None:
                         entry["name"] = entry_soup.contents[-2]
                     else:
                         entry["name"] = entry_soup.contents[-1]
