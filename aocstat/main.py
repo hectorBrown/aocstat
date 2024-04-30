@@ -1,4 +1,5 @@
 import argparse
+import re
 import os
 import os.path as op
 import sys
@@ -50,13 +51,18 @@ def lb(args=sys.argv[1:]):
         # TODO: restrict choices to available leaderboards/aliases
         help="Specify a private leaderboard id other than your own. Cannot be used with '-g, --global'",
     )
+    def glob_lb_day_type(arg):
+        if re.match(r"^(0?[1-9]|1[0-9]|2[0-5]):[12]$", arg):
+            return arg
+        else:
+            raise argparse.ArgumentTypeError("day:part must be in the form 'd:p' where d is the day and p is the part.")
     priv_glob.add_argument(
         "-g",
         "--global",
         default=False,
         nargs="?",
         metavar="DAY",
-        type=int,
+        type=glob_lb_day_type,
         help="View the global leaderboard. optionally include a day number in the form ('[1..25]:[1,2]') where the number after the colon denotes which part to view. Cannot be used with '--id'",
     )
     parser.add_argument(
@@ -75,7 +81,6 @@ def lb(args=sys.argv[1:]):
         )
         print(fmt.format_priv_lb(_lb))
     else:
-        # TODO: check day:part is valid
         _lb = api.get_glob_lb(yr=args["year"], day=args["global"])
         print(fmt.format_glob_lb(_lb))
 
