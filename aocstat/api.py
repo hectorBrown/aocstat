@@ -42,12 +42,13 @@ def get_cookie(cache_invalid=False):
             + "6) 'I'll do it myself'"
         )
         valid_browser = False
+        selection = None
         while not valid_browser:
             selection = input("Selection ([1],2,3,4,5,6): ").strip()
             if selection in [""] + [str(x) for x in range(1, 7)]:
                 valid_browser = True
             else:
-                print("'{}' isn't a valid selection.")
+                print(f"'{selection}' isn't a valid selection.")
 
         cookie = None
         if not selection == "6":
