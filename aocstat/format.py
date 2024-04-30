@@ -32,7 +32,11 @@ def format_priv_lb(lb):
         " " * (l_offset + 1)
         + "".join(
             [
-                ("\033[0;92m" if i < api.get_day(int(lb["event"])) else "\033[0;37m")
+                (
+                    "\033[0;92m"
+                    if i < api.get_most_recent_day(int(lb["event"]))
+                    else "\033[0;37m"
+                )
                 + (str(day_labels_1[i]) if day_labels_1[i] is not None else " ")
                 + " "
                 for i in range(25)
@@ -49,7 +53,11 @@ def format_priv_lb(lb):
         " " * (l_offset + 1)
         + "".join(
             [
-                ("\033[0;92m" if i < api.get_day(int(lb["event"])) else "\033[0;37m")
+                (
+                    "\033[0;92m"
+                    if i < api.get_most_recent_day(int(lb["event"]))
+                    else "\033[0;37m"
+                )
                 + str(day_labels_2[i])
                 + " "
                 for i in range(25)
@@ -59,7 +67,7 @@ def format_priv_lb(lb):
     )
 
     # append members row by row
-    user_id = api.get_id()
+    user_id = api.get_user_id()
     for i, member in enumerate(members):
         score = lb["members"][member]["local_score"]
         # setup axis
@@ -80,7 +88,7 @@ def format_priv_lb(lb):
                     res += "\033[1;93m* "
                 else:
                     res += "\033[1;94m* "
-            elif day <= api.get_day(int(lb["event"])):
+            elif day <= api.get_most_recent_day(int(lb["event"])):
                 res += "\033[1;90m* "
             else:
                 res += "  "
@@ -109,7 +117,7 @@ def format_glob_lb(lb):
         score_offset = len(str(lb["members"][members[0]]["total_score"]))
 
         # append members row by row
-        user_id = api.get_id()
+        user_id = api.get_user_id()
         for member in members:
             score = lb["members"][member]["total_score"]
             rank = lb["members"][member]["rank"]

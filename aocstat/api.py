@@ -17,6 +17,8 @@ from selenium.common.exceptions import (StaleElementReferenceException,
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
 
+import aocstat.config as config
+
 data_dir = ad.user_data_dir(appname="aocstat", appauthor=False)
 
 
@@ -109,7 +111,7 @@ def get_cookie(cache_invalid=False):
         return cookie
 
 
-def get_year():
+def get_most_recent_year():
     """Returns the year of the most recent AOC event.
 
     Returns:
@@ -119,7 +121,7 @@ def get_year():
     return today.year if today.month == 12 else today.year - 1
 
 
-def get_day(year):
+def get_most_recent_day(year):
     """Get the active (i.e. most recently released) day for a given year.
 
     Args:
@@ -146,7 +148,7 @@ def get_day(year):
         return 25
 
 
-def get_id():
+def get_user_id():
     """Gets user id from cache unless it doesn't exist yet, otherwise makes a request.
 
     Returns:
@@ -158,7 +160,7 @@ def get_id():
 
     cookie = get_cookie()
     req = rq.get(
-        f"https://adventofcode.com/{get_year()}/settings",
+        f"https://adventofcode.com/{get_most_recent_year()}/settings",
         cookies={"session": cookie},
     )
     soup = BeautifulSoup(req.content, "html.parser")
@@ -172,27 +174,24 @@ def get_id():
     return id
 
 
-def get_priv_lb(id, yr=None, force_update=False, ttl=900):
+def get_priv_lb(id, yr, force_update=False):
     """Gets a private board, from cache as long as cache was obtained `< ttl` ago.
 
     Args:
         id (int): Board id.
-        yr (int, optional): Year. Defaults to None: uses current year.
-        force_update (bool, optional): Skip cache regardless of ttl and get board from server. Defaults to False.
-        ttl (int, optional): Cache ttl. Defaults to 900.
+        yr (int): Year of the event.
+        force_update (bool): Skip cache regardless of ttl and get board from server. Defaults to False.
+        ttl (int): Cache ttl. Defaults to 900.
 
     Returns:
         board (dict): Raw leaderboard data.
     """
 
-    if yr is None:
-        yr = get_year()
-
     if op.exists(f"{data_dir}/lb_{yr}_{id}") and not force_update:
         cached_lb = None
         with open(f"{data_dir}/lb_{yr}_{id}", "rb") as f:
             cached_lb = pickle.load(f)
-        if time.time() - cached_lb["time"] <= ttl:
+        if time.time() - cached_lb["time"] <= config.get("ttl"):
             return json.loads(cached_lb["content"])
 
     # TODO: read cache if no internet connection
@@ -218,14 +217,12 @@ def get_priv_lb(id, yr=None, force_update=False, ttl=900):
     return json.loads(lb.content)
 
 
-def get_glob_lb(yr=None, day=None):
+def get_glob_lb(yr, day):
+    # TODO: docstring
     # TODO: read cache if no internet connection
 
-    if yr is None:
-        yr = get_year()
-
     if day is None:  # overall lb
-        lb_raw = rq.get("https://adventofcode.com/2022/leaderboard")
+        lb_raw = rq.get(f"https://adventofcode.com/{yr}/leaderboard")
         lb_soup = BeautifulSoup(lb_raw.content, "html.parser")
         entries_soup = lb_soup.find_all("div", {"class": "leaderboard-entry"})
         lb = {"members": {}, "day": None}
@@ -273,17 +270,25 @@ def get_glob_lb(yr=None, day=None):
         pass
 
 
-def get_lb_ids(ttl=900):
-    if op.exists(f"{data_dir}/lb_ids"):
+def get_lb_ids(force_update=False):
+    """Gets all private leaderboard ids from cache, as long as cache was obtained `< ttl` ago.
+
+    Args:
+        force_update (bool, optional): Skip cache regardless of ttl and get board from server. Defaults to False.
+
+    Returns:
+        boards (list(int)): List of board ids.
+    """
+    if op.exists(f"{data_dir}/lb_ids") and not force_update:
         cached_lb_ids = None
         with open(f"{data_dir}/lb_ids", "rb") as f:
             cached_lb_ids = pickle.load(f)
-        if time.time() - cached_lb_ids["time"] <= ttl:
+        if time.time() - cached_lb_ids["time"] <= config.get("ttl"):
             return cached_lb_ids["content"]
 
     cookie = get_cookie()
     lbs_raw = rq.get(
-        f"https://adventofcode.com/{get_year()}/leaderboard/private",
+        f"https://adventofcode.com/{get_most_recent_year()}/leaderboard/private",
         cookies={"session": cookie},
     )
     lbs_soup = BeautifulSoup(lbs_raw.content, "html.parser")

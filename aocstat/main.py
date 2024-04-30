@@ -5,6 +5,7 @@ import re
 import sys
 
 import aocstat.api as api
+import aocstat.config as config
 import aocstat.format as fmt
 
 # make ANSI colour work on win
@@ -14,6 +15,9 @@ os.system("")
 def start(args=sys.argv[1:]):
     if not op.exists(api.data_dir):
         os.mkdir(api.data_dir)
+    if not op.exists(config.config_dir):
+        os.mkdir(config.config_dir)
+
     parser = argparse.ArgumentParser(
         description="Interact with Advent of Code from your terminal."
     )
@@ -28,6 +32,7 @@ def start(args=sys.argv[1:]):
         lb(args=args["subcommand args"])
     elif args["subcommand"] == "purge":
         purge(args=args["subcommand args"])
+    # TODO: subcommand to edit config
 
 
 def lb(args=sys.argv[1:]):
@@ -39,7 +44,7 @@ def lb(args=sys.argv[1:]):
         "--year",
         action="store",
         metavar="YEAR",
-        choices=range(2015, api.get_year() + 1),
+        choices=range(2015, api.get_most_recent_year() + 1),
         type=int,
         help="Specify a year other than the most recent event.",
     )
@@ -101,7 +106,6 @@ def lb(args=sys.argv[1:]):
     args = vars(parser.parse_args(args))
     if api.get_lb_ids():
         if args["global"] is False:
-            # TODO: read config file to get custom ttl
             _lb = api.get_priv_lb(
                 id=args["id"], yr=args["year"], force_update=args["force"]
             )
