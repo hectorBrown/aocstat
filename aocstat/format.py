@@ -138,7 +138,7 @@ def format_priv_lb(lb, cached, ansi_on):
         res += "  "
         # add names
         res += (
-            +_colour(
+            _colour(
                 lb["members"][member]["name"],
                 "bright_cyan" if user_id == int(member) else "bright_white",
                 ansi_on,
