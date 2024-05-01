@@ -1,4 +1,5 @@
 import argparse
+import importlib.metadata
 import os
 import os.path as op
 import re
@@ -25,6 +26,12 @@ def start(args=sys.argv[1:]):
         "subcommand",
         choices=["lb", "purge", "config"],
         help="Subcommand to use. Available options are 'lb' (leaderboard), 'purge' (purge cache), or 'config' (view and edit config values).",
+    )
+    parser.add_argument(
+        "-v",
+        "--version",
+        action="version",
+        version=importlib.metadata.version("aocstat"),
     )
     parser.add_argument("subcommand args", nargs=argparse.REMAINDER)
     args = vars(parser.parse_args(args))
