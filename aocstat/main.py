@@ -106,7 +106,8 @@ def _lb(args=sys.argv[1:]):
             "--day",
             default=None,
             type=glob_lb_day_type,
-            help="A day number in the form ('[1..25]:[1,2]') where the number after the colon denotes which part to view.",
+            dest="global",
+            help="A day number in the form ('[1..25]:[1,2]') where the number after the colon denotes which part to view. Will default to the overall leaderboard if not provided.",
         )
 
     parser.add_argument(
@@ -128,6 +129,9 @@ def _lb(args=sys.argv[1:]):
         help="Print the leaderboard in multiple columns with the specified padding.",
     )
     args = vars(parser.parse_args(args))
+    if args["global"] is not None:
+        if int(args["global"].split(":")[0]) > api.get_most_recent_day(args["year"]):
+            parser.error("The day selected is in the future.")
     output = None
     if api.get_lb_ids():
         if args["global"] is False:
@@ -139,7 +143,7 @@ def _lb(args=sys.argv[1:]):
             _lb = api.get_glob_lb(yr=args["year"], day=args["global"])
             output = fmt.format_glob_lb(*_lb, ansi_on=not args["no_colour"])
     else:
-        _lb = api.get_glob_lb(yr=args["year"], day=args["day"])
+        _lb = api.get_glob_lb(yr=args["year"], day=args["global"])
         output = fmt.format_glob_lb(*_lb, ansi_on=not args["no_colour"])
     if args["columns"] is not None:
         output = fmt.columnize(output, args["columns"])
