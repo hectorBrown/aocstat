@@ -238,7 +238,7 @@ def _parse_leaderboard_entry(entry_soup, last_pos):
 
     # first we check to see if they have a linked github
     name_link = entry_soup.find(
-        "a", {"href": re.compile(r"^https:\/\/github\.com\/.+$")}
+        "a", {"href": re.compile(r"^https:\/\/(github|twitter)\.com\/.+$")}
     )
     anon_name = entry_soup.find("span", {"class": "leaderboard-anon"})
     time = entry_soup.find("span", {"class": "leaderboard-time"})
