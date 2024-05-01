@@ -236,12 +236,20 @@ def _pz(args=sys.argv[1:]):
         choices=["view", "input", "submit"],
         help="Subcommand to use. Available options are 'view' (view puzzle instructions), 'input' (get puzzle input), or 'submit' (submit puzzle answer).",
     )
+
+    def year_type(arg):
+        if int(arg) >= 2015 and int(arg) <= api.get_most_recent_year():
+            return int(arg)
+        else:
+            raise argparse.ArgumentTypeError(
+                "The year must be after 2014, and not in the future."
+            )
+
     parser.add_argument(
         "-y",
         "--year",
         action="store",
-        type=int,
-        choices=range(2015, api.get_most_recent_year() + 1),
+        type=year_type,
         help="Year of puzzle. Default is the most recent year.",
         default=api.get_most_recent_year(),
     )
