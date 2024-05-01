@@ -234,7 +234,6 @@ def columnize(text, padding):
         col_text (str): Columnized text.
     """
     width = shutil.get_terminal_size().columns
-    width = 200
     lines = [x for x in text.split("\n") if x != ""]
     col_width = max([_term_len(line) for line in lines]) + padding
     no_cols = width // col_width
