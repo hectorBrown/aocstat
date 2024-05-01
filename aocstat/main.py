@@ -232,5 +232,7 @@ def _config(args=sys.argv[1:]):
                 config.reset(args2["key"])
 
 
+# TODO: add stats subcommand
+
 if __name__ == "__main__":
     start()
