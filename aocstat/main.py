@@ -44,6 +44,7 @@ def start(args=sys.argv[1:]):
 
 
 def _lb(args=sys.argv[1:]):
+    # TODO: automatically page long output like for puzzle viewing
     parser = argparse.ArgumentParser(
         prog="aocstat lb", description="Interact with Advent of Code leaderboards."
     )
