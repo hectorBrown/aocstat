@@ -392,10 +392,9 @@ def get_puzzle(yr, day, part):
     Returns:
         puzzle (dict): The parsed puzzle text as a dictionary.
     """
-    # if op.exists(f"{data_dir}/pz_{yr}_{day}_{part}"):
-    #     with open(f"{data_dir}/pz_{yr}_{day}_{part}", "rb") as f:
-    #         return pickle.load(f)
-    # FIXME: switch caching back on
+    if op.exists(f"{data_dir}/pz_{yr}_{day}_{part}"):
+        with open(f"{data_dir}/pz_{yr}_{day}_{part}", "rb") as f:
+            return pickle.load(f)
 
     cookie = get_cookie()
     puzzle_raw = rq.get(
