@@ -316,6 +316,15 @@ def columnize(text, padding):
     width = shutil.get_terminal_size().columns
     width = 200
     lines = [x for x in text.split("\n")]
+
+    # need to do this to make sure ansi codes are preserved
+    curr_esc = "\033[0;97m"
+    for i, line in enumerate(lines):
+        lines[i] = curr_esc + line
+        escapes = re.findall(r"\033\[[0-9;]*m", line)
+        if len(escapes) > 0:
+            curr_esc = escapes[-1]
+
     col_width = max([_term_len(line) for line in lines]) + padding
     no_cols = width // col_width
     if no_cols == 0:
