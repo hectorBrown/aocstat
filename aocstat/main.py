@@ -299,7 +299,7 @@ def _pz(args=sys.argv[1:]):
         "--no-pager",
         action="store_true",
         default=False,
-        help="Use a pager to view the output. Defaults to on for output longer than the terminal height.",
+        help="Use a pager to view the output. Defaults to on for output longer than the terminal height (except for displaying input).",
     )
     parser.add_argument(
         "--no-colour",
@@ -331,10 +331,14 @@ def _pz(args=sys.argv[1:]):
             output = fmt.wrap_text(output, args["width"])
         if args["columns"] is not None:
             output = fmt.columnize(output, args["columns"])
+    elif args["subcommand"] == "input":
+        input = api.get_input(yr=args["year"], day=args["day"])
+        output = input
 
     if (
         len(output.split("\n")) > shutil.get_terminal_size().lines
         and not args["no_pager"]
+        and not args["subcommand"] == "input"
     ):
         pydoc.pager(output)
     else:

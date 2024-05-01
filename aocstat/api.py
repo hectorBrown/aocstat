@@ -419,6 +419,30 @@ def get_puzzle(yr, day, part):
     return puzzle
 
 
+def get_input(yr, day):
+    """Get the puzzle input for a given day.
+
+    Args:
+        yr (int): Year of the event.
+        day (int): Day of the event.
+
+    Returns:
+        input (str): The puzzle input.
+    """
+    if op.exists(f"{data_dir}/in_{yr}_{day}"):
+        with open(f"{data_dir}/in_{yr}_{day}", "rb") as f:
+            return pickle.load(f)
+
+    cookie = get_cookie()
+    input_raw = rq.get(
+        f"https://adventofcode.com/{yr}/day/{day}/input",
+        cookies={"session": cookie},
+    )
+    with open(f"{data_dir}/in_{yr}_{day}", "wb") as f:
+        pickle.dump(input_raw.text, f)
+    return input_raw.text
+
+
 def purge_cache():
     """Purges the cache."""
     for file in os.listdir(data_dir):
