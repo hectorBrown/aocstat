@@ -2,7 +2,9 @@ import argparse
 import importlib.metadata
 import os
 import os.path as op
+import pydoc
 import re
+import shutil
 import sys
 
 import aocstat.api as api
@@ -286,6 +288,12 @@ def _pz(args=sys.argv[1:]):
         help="Print the output in multiple columns with the specified padding.",
     )
     parser.add_argument(
+        "--no-pager",
+        action="store_true",
+        default=False,
+        help="Use a pager to view the output. Defaults to on for output longer than the terminal height.",
+    )
+    parser.add_argument(
         "--no-colour",
         action="store_true",
         help="Disable ANSI colour output.",
@@ -316,7 +324,13 @@ def _pz(args=sys.argv[1:]):
         if args["columns"] is not None:
             output = fmt.columnize(output, args["columns"])
 
-    print(output)
+    if (
+        len(output.split("\n")) > shutil.get_terminal_size().lines
+        and not args["no_pager"]
+    ):
+        pydoc.pager(output)
+    else:
+        print(output)
 
 
 if __name__ == "__main__":
