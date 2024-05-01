@@ -48,13 +48,21 @@ def _lb(args=sys.argv[1:]):
     parser = argparse.ArgumentParser(
         prog="aocstat lb", description="Interact with Advent of Code leaderboards."
     )
+
+    def year_type(arg):
+        if int(arg) >= 2015 and int(arg) <= api.get_most_recent_year():
+            return int(arg)
+        else:
+            raise argparse.ArgumentTypeError(
+                "The year must be after 2014, and not in the future."
+            )
+
     parser.add_argument(
         "-y",
         "--year",
         action="store",
         metavar="YEAR",
-        choices=range(2015, api.get_most_recent_year() + 1),
-        type=int,
+        type=year_type,
         help="Specify a year other than the most recent event.",
         default=api.get_most_recent_year(),
     )
