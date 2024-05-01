@@ -367,6 +367,59 @@ def get_lb_ids(force_update=False):
     return lb_ids
 
 
+def _parse_puzzle_text(tags, attributes=[]):
+    output = []
+    for tag in tags:
+        if isinstance(tag, NavigableString):
+            output.append({"content": tag, "attributes": attributes})
+        else:
+            child_attrs = attributes + [tag.name]
+            if "class" in tag.attrs:
+                if "star" in tag.attrs["class"]:
+                    child_attrs.append("star")
+            output += _parse_puzzle_text(tag.contents, child_attrs)
+    return output
+
+
+def get_puzzle(yr, day, part):
+    """Get the puzzle text for a given day and part.
+
+    Args:
+        yr (int): Year of the event.
+        day (int): Day of the event.
+        part (int): Part of the puzzle.
+
+    Returns:
+        puzzle (dict): The parsed puzzle text as a dictionary.
+    """
+    # if op.exists(f"{data_dir}/pz_{yr}_{day}_{part}"):
+    #     with open(f"{data_dir}/pz_{yr}_{day}_{part}", "rb") as f:
+    #         return pickle.load(f)
+    # FIXME: switch caching back on
+
+    cookie = get_cookie()
+    puzzle_raw = rq.get(
+        f"https://adventofcode.com/{yr}/day/{day}",
+        cookies={"session": cookie},
+    )
+
+    pz_soup = BeautifulSoup(puzzle_raw.content, "html.parser")
+    parts_available = pz_soup.find_all("article", {"class": "day-desc"})
+
+    if len(parts_available) < part:
+        raise ValueError("The part you requested is not available yet.")
+
+    part_soup = parts_available[part - 1]
+
+    puzzle = {}
+    puzzle["title"] = parts_available[0].contents[0].string.split(": ")[1][:-4]
+    puzzle["text"] = _parse_puzzle_text(part_soup.contents[1:])
+
+    with open(f"{data_dir}/pz_{yr}_{day}_{part}", "wb") as f:
+        pickle.dump(puzzle, f)
+    return puzzle
+
+
 def purge_cache():
     """Purges the cache."""
     for file in os.listdir(data_dir):
