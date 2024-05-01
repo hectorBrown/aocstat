@@ -113,7 +113,7 @@ def _lb(args=sys.argv[1:]):
         parser.add_argument(
             "-d",
             "--day",
-            default=None,
+            default=False,
             type=glob_lb_day_type,
             dest="global",
             help="A day number in the form ('[1..25]:[1,2]') where the number after the colon denotes which part to view. Will default to the overall leaderboard if not provided.",
@@ -138,7 +138,7 @@ def _lb(args=sys.argv[1:]):
         help="Print the leaderboard in multiple columns with the specified padding.",
     )
     args = vars(parser.parse_args(args))
-    if args["global"] is not None:
+    if args["global"]:
         if int(args["global"].split(":")[0]) > api.get_most_recent_day(args["year"]):
             parser.error("The day selected is in the future.")
     output = None
