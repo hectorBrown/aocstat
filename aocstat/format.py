@@ -7,12 +7,13 @@ import aocstat.api as api
 
 ANSI_COLOURS = {
     "grey": "\033[0;37m",
-    "bright_green": "\033[1;92m",
-    "bright_yellow": "\033[1;93m",
-    "bright_blue": "\033[1;94m",
-    "bright_grey": "\033[1;90m",
-    "bright_cyan": "\033[1;96m",
-    "bright_white": "\033[1;97m",
+    "bright_green": "\033[0;92m",
+    "bright_yellow": "\033[0;93m",
+    "bright_blue": "\033[0;94m",
+    "bright_grey": "\033[0;90m",
+    "bright_cyan": "\033[0;96m",
+    "bright_white": "\033[0;97m",
+    "bold_bright_white": "\033[1;97m",
     "green": "\033[0;32m",
 }
 
