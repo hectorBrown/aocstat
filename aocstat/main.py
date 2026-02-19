@@ -45,6 +45,8 @@ def start(args=sys.argv[1:]):
 
 def _lb(args=sys.argv[1:]):
     # TODO: automatically page long output like for puzzle viewing
+    # TODO: add leaderboard selection
+    # TODO: add handling for 2025 no global board
     parser = argparse.ArgumentParser(
         prog="aocstat lb", description="Interact with Advent of Code leaderboards."
     )
@@ -197,7 +199,7 @@ def _config(args=sys.argv[1:]):
                 print(f"{key}: {config.get(key)}")
     else:
         parser = argparse.ArgumentParser(
-            prog=f"aocstat config {args1["subcommand"]}",
+            prog=f"aocstat config {args1['subcommand']}",
             description="View and edit config values.",
         )
         if args1["subcommand"] == "reset":

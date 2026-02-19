@@ -12,8 +12,7 @@ import appdirs as ad
 import requests as rq
 from bs4 import BeautifulSoup, NavigableString, Tag
 from selenium import webdriver
-from selenium.common.exceptions import (StaleElementReferenceException,
-                                        TimeoutException)
+from selenium.common.exceptions import StaleElementReferenceException, TimeoutException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
 
@@ -288,7 +287,7 @@ def get_glob_lb(yr, day):
         rq.get(f"https://adventofcode.com/{yr}/leaderboard")
         if day is None
         else rq.get(
-            f"https://adventofcode.com/{yr}/leaderboard/day/{day.split(":")[0]}"
+            f"https://adventofcode.com/{yr}/leaderboard/day/{day.split(':')[0]}"
         )
     )
     lb_soup = BeautifulSoup(lb_raw.content, "html.parser")
