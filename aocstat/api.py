@@ -76,7 +76,7 @@ def get_cookie(cache_invalid=False):
                 )
                 return get_cookie(cache_invalid=cache_invalid)
 
-            wd.get("https://adventofcode.com/2022/auth/login")  # pyright: ignore
+            wd.get(f"https://adventofcode.com/{get_most_recent_year()}/auth/login")  # pyright: ignore
             print("\nPlease authenticate yourself with one of the methods given.")
 
             def logged_in(wd):
