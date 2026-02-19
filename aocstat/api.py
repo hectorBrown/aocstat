@@ -273,9 +273,11 @@ def get_glob_lb(yr, day):
         day (str): Day of the event in the form 'd:p' where d is the day and p is the part.
 
     Returns:
-        lb (dict): Raw leaderboard data.
-        cached (bool | float): Whether the board was cached or not (i.e. if it was obtained from the server or not). If it was cached, the time it was cached is returned.
+        lb (dict): Raw leaderboard data. (None if a global leaderboard doesn't exist)
+        cached (bool | float): Whether the board was cached or not (i.e. if it was obtained from the server or not). If it was cached, the time it was cached is returned. (None if a global leaderboard doesn't exist)
     """
+    if yr >= 2025:
+        return None, None
     if op.exists(f"{data_dir}/glb_{yr}_{day}") and not connected():
         cached_lb = None
         with open(f"{data_dir}/glb_{yr}_{day}", "rb") as f:

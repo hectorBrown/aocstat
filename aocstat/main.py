@@ -150,7 +150,10 @@ def _lb(args=sys.argv[1:]):
             output = fmt.format_priv_lb(*_lb, ansi_on=not args["no_colour"])
         else:
             _lb = api.get_glob_lb(yr=args["year"], day=args["global"])
-            output = fmt.format_glob_lb(*_lb, ansi_on=not args["no_colour"])
+            if _lb[0] is None:
+                output = "There is no global leaderboard for the selected year."
+            else:
+                output = fmt.format_glob_lb(*_lb, ansi_on=not args["no_colour"])
     else:
         _lb = api.get_glob_lb(yr=args["year"], day=args["global"])
         output = fmt.format_glob_lb(*_lb, ansi_on=not args["no_colour"])
