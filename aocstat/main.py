@@ -186,7 +186,7 @@ def _config(args=sys.argv[1:]):
                 print(f"{key}: {config.get(key)}")
     else:
         parser = argparse.ArgumentParser(
-            prog=f"aocstat config {args1["subcommand"]}",
+            prog=f"aocstat config {args1['subcommand']}",
             description="View and edit config values.",
         )
         if args1["subcommand"] == "reset":
@@ -306,11 +306,16 @@ def _pz(args=sys.argv[1:]):
         action="store_true",
         help="Disable ANSI colour output.",
     )
+    parser.add_argument("subcommand args", nargs=argparse.REMAINDER)
     args = vars(parser.parse_args(args))
     if args["day"] is not None and args["day"] > api.get_most_recent_day(args["year"]):
         parser.error("Day cannot be in the future.")
     if args["day"] is None:
         args["day"] = api.get_most_recent_day(args["year"])
+    if len(args["subcommand args"]) and args["subcommand"] != "submit":
+        if len(args["subcommand args"]) > 1:
+            parser.error("Too many arguments provided for 'submit' subcommand.")
+        parser.error("Only the 'submit' subcommand accepts additional arguments.")
 
     if args["subcommand"] == "view":
         puzzle = None
@@ -334,6 +339,11 @@ def _pz(args=sys.argv[1:]):
     elif args["subcommand"] == "input":
         input = api.get_input(yr=args["year"], day=args["day"])
         output = input
+    elif args["subcommand"] == "submit":
+        output = api.get_current_level(args["year"], args["day"])
+        output = api.submit_answer(
+            args["year"], args["day"], args["subcommand args"][0]
+        )
 
     if (
         len(output.split("\n")) > shutil.get_terminal_size().lines

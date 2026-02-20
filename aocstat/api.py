@@ -12,8 +12,7 @@ import appdirs as ad
 import requests as rq
 from bs4 import BeautifulSoup, NavigableString, Tag
 from selenium import webdriver
-from selenium.common.exceptions import (StaleElementReferenceException,
-                                        TimeoutException)
+from selenium.common.exceptions import StaleElementReferenceException, TimeoutException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
 
@@ -286,7 +285,7 @@ def get_glob_lb(yr, day):
         rq.get(f"https://adventofcode.com/{yr}/leaderboard")
         if day is None
         else rq.get(
-            f"https://adventofcode.com/{yr}/leaderboard/day/{day.split(":")[0]}"
+            f"https://adventofcode.com/{yr}/leaderboard/day/{day.split(':')[0]}"
         )
     )
     lb_soup = BeautifulSoup(lb_raw.content, "html.parser")
@@ -392,6 +391,7 @@ def get_puzzle(yr, day, part):
     Returns:
         puzzle (dict): The parsed puzzle text as a dictionary.
     """
+    # TODO: error if part is inaccessible
     if op.exists(f"{data_dir}/pz_{yr}_{day}_{part}"):
         with open(f"{data_dir}/pz_{yr}_{day}_{part}", "rb") as f:
             return pickle.load(f)
@@ -457,3 +457,50 @@ def connected():
         return True
     except rq.exceptions.ConnectionError:
         return False
+
+
+def submit_answer(yr, day, answer):
+    """Submit an answer for the given year and day.
+
+    Args:
+        yr (int): Year of the event.
+        day (int): Day of the event.
+        answer (str): The answer to submit.
+
+    Returns:
+        correct (bool|None): Whether the answer was correct or not. None if the
+        puzzle has already been solved.
+    """
+    level = get_current_level(yr, day)
+    if level is None:
+        return None
+
+    res = rq.post(
+        f"https://adventofcode.com/{yr}/day/{day}/answer",
+        {"level": level, "answer": answer},
+    )
+    print(res)
+
+
+def get_current_level(yr, day):
+    """Returns the lowest unsolved level for the given year and day.
+
+    Args:
+        yr (int): Year of the event.
+        day (int): Day of the event.
+
+    Returns:
+        level (int|None): Lowest unsolved level. None if both are solved.
+    """
+    cookie = get_cookie()
+    puzzle_raw = rq.get(
+        f"https://adventofcode.com/{yr}/day/{day}",
+        cookies={"session": cookie},
+    )
+    pz_soup = BeautifulSoup(puzzle_raw.content, "html.parser")
+    success = pz_soup.find_all("p", {"class": "day-success"})
+    if len(success) == 0:
+        return 1
+    if "**" in success[0].contents[0]:
+        return None
+    return 2
