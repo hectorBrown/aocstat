@@ -457,3 +457,70 @@ def connected():
         return True
     except rq.exceptions.ConnectionError:
         return False
+
+
+def submit_answer(yr, day, answer):
+    """Submit an answer for the given year and day.
+
+    Args:
+        yr (int): Year of the event.
+        day (int): Day of the event.
+        answer (str): The answer to submit.
+
+    Returns:
+        correct (bool|None): Whether the answer was correct or not. None if the
+        puzzle has already been solved.
+        timeout (bool|None): Whether you have submitted an answer too recently.
+        too_high (bool|None): Whether the incorrect answer you submitted was too high.
+    """
+    level = get_current_level(yr, day)
+    if level is None:
+        return None, None, None
+
+    cookie = get_cookie()
+
+    res = rq.post(
+        f"https://adventofcode.com/{yr}/day/{day}/answer",
+        {"level": level, "answer": answer},
+        cookies={"session": cookie},
+    )
+    res_soup = BeautifulSoup(res.content, "html.parser")
+    verdict = None
+    try:
+        verdict = res_soup.find("article").find("p").contents[0].string  # pyright: ignore
+    except Exception:
+        raise Exception("Unexpected response from server, maybe try again later?")
+    if "You gave an answer too recently" in verdict:
+        return False, True, None
+    elif "That's not the right answer" in verdict:
+        if "your answer is too high" in verdict:
+            return False, False, True
+        else:
+            return False, False, False
+    elif "That's the right answer" in verdict:
+        return True, False, None
+    raise Exception("Unexpected response from server, maybe try again later?")
+
+
+def get_current_level(yr, day):
+    """Returns the lowest unsolved level for the given year and day.
+
+    Args:
+        yr (int): Year of the event.
+        day (int): Day of the event.
+
+    Returns:
+        level (int|None): Lowest unsolved level. None if both are solved.
+    """
+    cookie = get_cookie()
+    puzzle_raw = rq.get(
+        f"https://adventofcode.com/{yr}/day/{day}",
+        cookies={"session": cookie},
+    )
+    pz_soup = BeautifulSoup(puzzle_raw.content, "html.parser")
+    success = pz_soup.find_all("p", {"class": "day-success"})
+    if len(success) == 0:
+        return 1
+    if "**" in success[0].contents[0]:
+        return None
+    return 2

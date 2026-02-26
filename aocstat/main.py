@@ -236,6 +236,18 @@ def _pz(args=sys.argv[1:]):
         choices=["view", "input", "submit"],
         help="Subcommand to use. Available options are 'view' (view puzzle instructions), 'input' (get puzzle input), or 'submit' (submit puzzle answer).",
     )
+    parser.add_argument("subcommand args", nargs=argparse.REMAINDER)
+    args1 = vars(parser.parse_args(args))
+    subcommand = args1["subcommand"]
+
+    parser = argparse.ArgumentParser(
+        f"aocstat pz {subcommand}", "Interact with Advent of Code puzzles."
+    )
+    if subcommand == "submit":
+        parser.add_argument(
+            "answer",
+            type=str,
+        )
 
     def year_type(arg):
         if int(arg) >= 2015 and int(arg) <= api.get_most_recent_year():
@@ -306,13 +318,17 @@ def _pz(args=sys.argv[1:]):
         action="store_true",
         help="Disable ANSI colour output.",
     )
-    args = vars(parser.parse_args(args))
+
+    args = vars(parser.parse_args(args1["subcommand args"]))
+
     if args["day"] is not None and args["day"] > api.get_most_recent_day(args["year"]):
         parser.error("Day cannot be in the future.")
     if args["day"] is None:
         args["day"] = api.get_most_recent_day(args["year"])
 
-    if args["subcommand"] == "view":
+    output = None
+
+    if subcommand == "view":
         puzzle = None
         try:
             puzzle = api.get_puzzle(yr=args["year"], day=args["day"], part=args["part"])
@@ -331,9 +347,29 @@ def _pz(args=sys.argv[1:]):
             output = fmt.wrap_text(output, args["width"])
         if args["columns"] is not None:
             output = fmt.columnize(output, args["columns"])
-    elif args["subcommand"] == "input":
+    elif subcommand == "input":
         input = api.get_input(yr=args["year"], day=args["day"])
         output = input
+    elif subcommand == "submit":
+        correct, timeout, too_high = api.submit_answer(
+            args["year"], args["day"], args["answer"]
+        )
+        if correct is None:
+            parser.error("You have completed every part for this day.")
+        elif timeout:
+            parser.error(
+                "You submitted an answer for this puzzle too recently. Please wait before submitting again."
+            )
+        elif not correct:
+            if too_high:
+                output = "That's not the right answer. Your answer is too high."
+            else:
+                output = "That's not the right answer. Your answer is too low."
+        elif correct:
+            output = "That's the right answer! Congratulations!"
+
+    if output is None:
+        raise ValueError("Output is None, something went wrong.")
 
     if (
         len(output.split("\n")) > shutil.get_terminal_size().lines
