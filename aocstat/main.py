@@ -49,7 +49,6 @@ def start(args=sys.argv[1:]):
 
 
 def _lb(args=sys.argv[1:]):
-    # TODO: automatically page long output like for puzzle viewing
     # TODO: add leaderboard selection
     # TODO: add handling for 2025 no global board
     parser = argparse.ArgumentParser(
@@ -72,6 +71,12 @@ def _lb(args=sys.argv[1:]):
         type=year_type,
         help="Specify a year other than the most recent event.",
         default=api.get_most_recent_year(),
+    )
+    parser.add_argument(
+        "--no-pager",
+        action="store_true",
+        default=False,
+        help="Use a pager to view the output. Defaults to on for output longer than the terminal height (except for displaying input).",
     )
     parser.add_argument(
         "--no-colour",
@@ -167,9 +172,10 @@ def _lb(args=sys.argv[1:]):
         else:
             _lb = api.get_glob_lb(yr=args["year"], day=args["global"])
             output = fmt.format_glob_lb(*_lb, ansi_on=not args["no_colour"])
+
     if args["columns"] is not None:
         output = fmt.columnize(output, args["columns"])
-    print(output)
+    _dynamic_page(output, args["no_pager"])
 
 
 def _purge(args=sys.argv[1:]):
@@ -389,11 +395,11 @@ def _pz(args=sys.argv[1:]):
     if output is None:
         raise ValueError("Output is None, something went wrong.")
 
-    if (
-        len(output.split("\n")) > shutil.get_terminal_size().lines
-        and not args["no_pager"]
-        and not args["subcommand"] == "input"
-    ):
+    _dynamic_page(output, args["no_pager"] or args["subcommand"] == "input")
+
+
+def _dynamic_page(output, no_pager):
+    if len(output.split("\n")) > shutil.get_terminal_size().lines and not no_pager:
         pydoc.pager(output)
     else:
         print(output)
