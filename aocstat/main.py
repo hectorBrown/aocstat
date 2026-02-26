@@ -1,7 +1,8 @@
 import argparse
 import importlib.metadata
-import os
+import subprocess as sp
 import os.path as op
+import os
 import pydoc
 import re
 import shutil
@@ -12,7 +13,8 @@ import aocstat.config as config
 import aocstat.format as fmt
 
 # make ANSI colour work on win
-os.system("")
+if sys.platform == "win32":
+    sp.run("", shell=True)
 
 
 def start(args=sys.argv[1:]):
