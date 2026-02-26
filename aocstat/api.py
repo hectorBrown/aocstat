@@ -86,7 +86,7 @@ def get_cookie(cache_invalid=False):
                     return False
 
             try:
-                WebDriverWait(wd, timeout=1000, poll_frequency=0.5).until(logged_in)
+                WebDriverWait(wd, timeout=1000, poll_frequency=0.5).until(logged_in)  # pyright: ignore
             except TimeoutException:
                 print("\nTimed out waiting for authentication.\n")
                 wd.quit()  # pyright: ignore
@@ -368,6 +368,83 @@ def get_lb_ids(force_update=False):
     return lb_ids
 
 
+def _parse_puzzle_text(tags, attributes=[]):
+    output = []
+    for tag in tags:
+        if isinstance(tag, NavigableString):
+            output.append({"content": tag, "attributes": attributes})
+        else:
+            child_attrs = attributes + [tag.name]
+            if "class" in tag.attrs:
+                if "star" in tag.attrs["class"]:
+                    child_attrs.append("star")
+            output += _parse_puzzle_text(tag.contents, child_attrs)
+    return output
+
+
+def get_puzzle(yr, day, part):
+    """Get the puzzle text for a given day and part.
+
+    Args:
+        yr (int): Year of the event.
+        day (int): Day of the event.
+        part (int): Part of the puzzle.
+
+    Returns:
+        puzzle (dict): The parsed puzzle text as a dictionary.
+    """
+    # TODO: error if part is inaccessible
+    if op.exists(f"{data_dir}/pz_{yr}_{day}_{part}"):
+        with open(f"{data_dir}/pz_{yr}_{day}_{part}", "rb") as f:
+            return pickle.load(f)
+
+    cookie = get_cookie()
+    puzzle_raw = rq.get(
+        f"https://adventofcode.com/{yr}/day/{day}",
+        cookies={"session": cookie},
+    )
+
+    pz_soup = BeautifulSoup(puzzle_raw.content, "html.parser")
+    parts_available = pz_soup.find_all("article", {"class": "day-desc"})
+
+    if len(parts_available) < part:
+        raise ValueError("The part you requested is not available yet.")
+
+    part_soup = parts_available[part - 1]
+
+    puzzle = {}
+    puzzle["title"] = parts_available[0].contents[0].string.split(": ")[1][:-4]
+    puzzle["text"] = _parse_puzzle_text(part_soup.contents[1:])
+
+    with open(f"{data_dir}/pz_{yr}_{day}_{part}", "wb") as f:
+        pickle.dump(puzzle, f)
+    return puzzle
+
+
+def get_input(yr, day):
+    """Get the puzzle input for a given day.
+
+    Args:
+        yr (int): Year of the event.
+        day (int): Day of the event.
+
+    Returns:
+        input (str): The puzzle input.
+    """
+    if op.exists(f"{data_dir}/in_{yr}_{day}"):
+        with open(f"{data_dir}/in_{yr}_{day}", "rb") as f:
+            return pickle.load(f)
+
+    cookie = get_cookie()
+    input_raw = rq.get(
+        f"https://adventofcode.com/{yr}/day/{day}/input",
+        cookies={"session": cookie},
+    )
+    with open(f"{data_dir}/in_{yr}_{day}", "wb") as f:
+        pickle.dump(input_raw.text, f)
+    return input_raw.text
+
+
 def purge_cache():
     """Purges the cache."""
     for file in os.listdir(data_dir):
@@ -382,3 +459,70 @@ def connected():
         return True
     except rq.exceptions.ConnectionError:
         return False
+
+
+def submit_answer(yr, day, answer):
+    """Submit an answer for the given year and day.
+
+    Args:
+        yr (int): Year of the event.
+        day (int): Day of the event.
+        answer (str): The answer to submit.
+
+    Returns:
+        correct (bool|None): Whether the answer was correct or not. None if the
+        puzzle has already been solved.
+        timeout (bool|None): Whether you have submitted an answer too recently.
+        too_high (bool|None): Whether the incorrect answer you submitted was too high.
+    """
+    level = get_current_level(yr, day)
+    if level is None:
+        return None, None, None
+
+    cookie = get_cookie()
+
+    res = rq.post(
+        f"https://adventofcode.com/{yr}/day/{day}/answer",
+        {"level": level, "answer": answer},
+        cookies={"session": cookie},
+    )
+    res_soup = BeautifulSoup(res.content, "html.parser")
+    verdict = None
+    try:
+        verdict = res_soup.find("article").find("p").contents[0].string  # pyright: ignore
+    except Exception:
+        raise Exception("Unexpected response from server, maybe try again later?")
+    if "You gave an answer too recently" in verdict:
+        return False, True, None
+    elif "That's not the right answer" in verdict:
+        if "your answer is too high" in verdict:
+            return False, False, True
+        else:
+            return False, False, False
+    elif "That's the right answer" in verdict:
+        return True, False, None
+    raise Exception("Unexpected response from server, maybe try again later?")
+
+
+def get_current_level(yr, day):
+    """Returns the lowest unsolved level for the given year and day.
+
+    Args:
+        yr (int): Year of the event.
+        day (int): Day of the event.
+
+    Returns:
+        level (int|None): Lowest unsolved level. None if both are solved.
+    """
+    cookie = get_cookie()
+    puzzle_raw = rq.get(
+        f"https://adventofcode.com/{yr}/day/{day}",
+        cookies={"session": cookie},
+    )
+    pz_soup = BeautifulSoup(puzzle_raw.content, "html.parser")
+    success = pz_soup.find_all("p", {"class": "day-success"})
+    if len(success) == 0:
+        return 1
+    if "**" in success[0].contents[0]:
+        return None
+    return 2

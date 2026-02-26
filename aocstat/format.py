@@ -14,6 +14,8 @@ ANSI_COLOURS = {
     "bright_cyan": "\033[0;96m",
     "bright_white": "\033[0;97m",
     "bold_bright_white": "\033[1;97m",
+    "bold_bright_yellow": "\033[1;93m",
+    "bold_bright_cyan": "\033[1;96m",
     "green": "\033[0;32m",
 }
 
@@ -219,8 +221,86 @@ def format_glob_lb(lb, cached, ansi_on):
     return res
 
 
+def format_puzzle(puzzle, day, year, part, ansi_on):
+    """Return a string displaying the puzzle text for `puzzle`.
+
+    Args:
+        puzzle (dict): Puzzle to represent.
+        ansi_on (bool): Whether to use ANSI colour codes.
+
+    Returns:
+        puzzle_str (str): A 'pretty' string representing the puzzle.
+    """
+    res = ""
+    res += _colour(f"Day {day} - {year} | Part {part}\n\n", "bright_grey", ansi_on)
+    res += _colour(f"--- {puzzle['title']} ---\n\n", "bold_bright_white", ansi_on)
+    for item in puzzle["text"]:
+        content = item["content"]
+        if "ul" in item["attributes"]:
+            content = content.replace("\n", "\n - ").replace("\n - \n", "\n\n")
+        res += _colour(
+            content,
+            (
+                "bold_bright_yellow"
+                if "star" in item["attributes"]
+                else (
+                    "bold_bright_cyan"
+                    if "em" in item["attributes"]
+                    else (
+                        "bright_blue"
+                        if "code" in item["attributes"]
+                        else "bright_white"
+                    )
+                )
+            ),
+            ansi_on,
+        )
+        if len(item["attributes"]) == 0:
+            res += "\n"
+
+    # this final part is a bit of a hack, but it works, strips out the final bulletpoint from the ul environment and replaces it with a newline
+    return res.strip("\n").replace("\n - \033[0;97m\033[0;97m\n", "\n\n")
+
+
 def _term_len(text):
     return len(re.sub(r"\033\[[0-9;]*m", "", text))
+
+
+def wrap_text(text, limit):
+    """Return a string with text wrapped to `limit` width.
+
+    Args:
+        text (str): Text to wrap.
+        limit (int): Maximum number of characters.
+
+    Returns:
+        wrapped_text (str): Wrapped text.
+    """
+    output = ""
+    last_pos = 0
+    last_space = None
+    i = 0
+    while i < len(text):
+        char = text[i]
+        if char == " ":
+            last_space = i
+        if char == "\n":
+            output += text[last_pos : i + 1]
+            last_pos = i + 1
+            last_space = None
+        elif _term_len(text[last_pos:i]) > limit:
+            if last_space is not None:
+                output += text[last_pos:last_space] + "\n"
+                last_pos = last_space + 1
+                i = last_pos + 1
+                last_space = None
+            else:
+                output += text[last_pos : i - 1] + "\n"
+                last_pos = i - 1
+        i += 1
+    if last_pos < len(text):
+        output += text[last_pos:]
+    return output
 
 
 def columnize(text, padding):
@@ -234,7 +314,16 @@ def columnize(text, padding):
         col_text (str): Columnized text.
     """
     width = shutil.get_terminal_size().columns
-    lines = [x for x in text.split("\n") if x != ""]
+    lines = [x for x in text.split("\n")]
+
+    # need to do this to make sure ansi codes are preserved
+    curr_esc = "\033[0;97m"
+    for i, line in enumerate(lines):
+        lines[i] = curr_esc + line
+        escapes = re.findall(r"\033\[[0-9;]*m", line)
+        if len(escapes) > 0:
+            curr_esc = escapes[-1]
+
     col_width = max([_term_len(line) for line in lines]) + padding
     no_cols = width // col_width
     if no_cols == 0:
