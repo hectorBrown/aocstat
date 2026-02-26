@@ -12,10 +12,14 @@ import appdirs as ad
 import requests as rq
 from bs4 import BeautifulSoup, Tag
 from bs4.element import NavigableString
-from selenium import webdriver
 from selenium.common.exceptions import StaleElementReferenceException, TimeoutException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
+from selenium.webdriver.firefox.webdriver import WebDriver as FirefoxWebDriver
+from selenium.webdriver.chrome.webdriver import WebDriver as ChromeWebDriver
+from selenium.webdriver.edge.webdriver import WebDriver as EdgeWebDriver
+from selenium.webdriver.ie.webdriver import WebDriver as IeWebDriver
+from selenium.webdriver.safari.webdriver import WebDriver as SafariWebDriver
 
 import aocstat.config as config
 
@@ -61,22 +65,24 @@ def get_cookie(cache_invalid=False):
             # TODO: stop these from creating logs wherever you auth
             try:
                 if selection in ["1", ""]:
-                    wd = webdriver.Firefox()  # type: ignore
+                    wd = FirefoxWebDriver()
                 elif selection == "2":
-                    wd = webdriver.Chrome()  # type: ignore
+                    wd = ChromeWebDriver()
                 elif selection == "3":
-                    wd = webdriver.Edge()  # type: ignore
+                    wd = EdgeWebDriver()
                 elif selection == "4":
-                    wd = webdriver.Ie()  # type: ignore
+                    wd = IeWebDriver()
                 elif selection == "5":
-                    wd = webdriver.Safari()  # type: ignore
+                    wd = SafariWebDriver()
             except Exception:
                 print(
                     "\nYou don't have a driver installed for that browser, please try again.\n"
                 )
                 return get_cookie(cache_invalid=cache_invalid)
 
-            wd.get(f"https://adventofcode.com/{get_most_recent_year()}/auth/login")  # type: ignore
+            if wd is None:
+                raise ValueError("Unexpected error, please try again.")
+            wd.get(f"https://adventofcode.com/{get_most_recent_year()}/auth/login")
             print("\nPlease authenticate yourself with one of the methods given.")
 
             def logged_in(wd):
@@ -87,13 +93,16 @@ def get_cookie(cache_invalid=False):
                     return False
 
             try:
-                WebDriverWait(wd, timeout=1000, poll_frequency=0.5).until(logged_in)  # type: ignore
+                WebDriverWait(wd, timeout=1000, poll_frequency=0.5).until(logged_in)
             except TimeoutException:
                 print("\nTimed out waiting for authentication.\n")
-                wd.quit()  # type: ignore
+                wd.quit()
 
-            cookie = wd.get_cookie("session")["value"]  # type: ignore
-            wd.quit()  # type: ignore
+            cookie = wd.get_cookie("session")
+            if cookie is None:
+                raise ValueError("Unexpected error, please try again.")
+            cookie = cookie["value"]
+            wd.quit()
             print("\nAuthenticated.")
         else:
             print(
@@ -296,19 +305,21 @@ def get_glob_lb(yr, day):
     )
     lb_soup = BeautifulSoup(lb_raw.content, "html.parser")
 
+    parsing_error_msg = "Unexpected parsing error, the AOC website may have changed their HTML structure. Please report this to the developers."
     if day is None:
         entries_soup = lb_soup.find_all("div", {"class": "leaderboard-entry"})
     else:
         split = lb_soup.find(
             "span", {"class": "leaderboard-daydesc-first"}, recursive=True
-        ).parent  # type: ignore
+        )
+        if split is None:
+            raise ValueError(parsing_error_msg)
+        split = split.parent
+        if split is None:
+            raise ValueError(parsing_error_msg)
         entries_soup = [
             x
-            for x in (
-                split.previous_siblings  # type: ignore
-                if day.split(":")[1] == "2"
-                else split.next_siblings  # type: ignore
-            )
+            for x in (split.previous_siblings if part == 2 else split.next_siblings)
             if isinstance(x, Tag)
             if "class" in x.attrs
             if "leaderboard-entry" in x.attrs["class"]
@@ -318,7 +329,13 @@ def get_glob_lb(yr, day):
     last_pos = None
 
     for entry_soup in entries_soup:
-        id = int(entry_soup.get("data-user-id"))  # type: ignore
+        user_id_elem = entry_soup.get("data-user-id")
+        if user_id_elem is None:
+            raise ValueError(parsing_error_msg)
+        try:
+            id = int(user_id_elem)  # type: ignore
+        except ValueError:
+            raise ValueError(parsing_error_msg)
         lb["members"][id], last_pos = _parse_leaderboard_entry(entry_soup, last_pos)
 
     lb["day"] = day
