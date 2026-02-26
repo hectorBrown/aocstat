@@ -1,24 +1,21 @@
-[tool.poetry]
+[project]
 name = "aocstat"
 version = "1.0.0"
 description = "Command line tool for interacting with Advent of Code."
-authors = ["Hector Brown <hectorjbrown@protonmail.com>"]
 readme = "README.md"
+requires-python = ">=3.10"
 
-[tool.poetry.dependencies]
-python = "^3.10"
-selenium = "^4.7.2"
-requests = "^2.28.1"
-bs4 = "^0.0.1"
-appdirs = "^1.4.4"
-
-[tool.poetry.group.dev.dependencies]
-types-beautifulsoup4 = "^4.12.0.20240229"
-
+dependencies = [
+  "selenium>=4.7.2",
+  "requests>=2.28.1",
+  "bs4>=0.0.1",
+  "appdirs>=1.4.4",
+]
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
-[tool.poetry.scripts]
+
+[project.scripts]
 aocstat = "aocstat.main:start"
