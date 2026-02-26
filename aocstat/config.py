@@ -9,9 +9,7 @@ DEFAULTS = {
     "ttl": 900,
 }
 # types defined so that they raise an error if the value is not of the correct type, but return value in correct type if it is castable
-TYPES = {
-    "ttl": lambda x: int(x),
-}
+TYPES = {"ttl": lambda x: int(x)}
 TYPE_ERRS = {
     "ttl": "Value of 'ttl' must be an integer.",
 }
