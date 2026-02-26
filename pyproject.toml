@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "aocstat"
-version = "0.2.4"
+version = "1.0.0"
 description = "Command line tool for interacting with Advent of Code."
 authors = ["Hector Brown <hectorjbrown@protonmail.com>"]
 readme = "README.md"
