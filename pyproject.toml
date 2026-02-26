@@ -1,6 +1,6 @@
 [project]
 name = "aocstat"
-version = "1.1.0"
+version = "1.1.1"
 description = "Command line tool for interacting with Advent of Code."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -19,3 +19,6 @@ build-backend = "hatchling.build"
 
 [project.scripts]
 aocstat = "aocstat.main:start"
+
+[dependency-groups]
+dev = ["pytest"]
