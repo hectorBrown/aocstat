@@ -133,6 +133,7 @@ def get_most_recent_day(year):
     Returns:
         day (int): The most recently released day for `year`.
     """
+    # TODO: add handling for 12 day year in 2025
     today = dt.date.today()
     if (today.year == year and today.month != 12) or year > today.year:
         raise ValueError(
