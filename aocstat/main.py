@@ -16,6 +16,7 @@ os.system("")
 
 
 def start(args=sys.argv[1:]):
+    # TODO: day > 12 is invalid for years 2025 and after
     if not op.exists(api.data_dir):
         os.mkdir(api.data_dir)
     if not op.exists(config.config_dir):
@@ -186,7 +187,7 @@ def _config(args=sys.argv[1:]):
                 print(f"{key}: {config.get(key)}")
     else:
         parser = argparse.ArgumentParser(
-            prog=f"aocstat config {args1["subcommand"]}",
+            prog=f"aocstat config {args1['subcommand']}",
             description="View and edit config values.",
         )
         if args1["subcommand"] == "reset":

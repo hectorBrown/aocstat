@@ -12,8 +12,7 @@ import appdirs as ad
 import requests as rq
 from bs4 import BeautifulSoup, NavigableString, Tag
 from selenium import webdriver
-from selenium.common.exceptions import (StaleElementReferenceException,
-                                        TimeoutException)
+from selenium.common.exceptions import StaleElementReferenceException, TimeoutException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
 
@@ -87,7 +86,7 @@ def get_cookie(cache_invalid=False):
                     return False
 
             try:
-                WebDriverWait(wd, timeout=1000, poll_frequency=0.5).until(logged_in)
+                WebDriverWait(wd, timeout=1000, poll_frequency=0.5).until(logged_in)  # pyright: ignore
             except TimeoutException:
                 print("\nTimed out waiting for authentication.\n")
                 wd.quit()  # pyright: ignore
@@ -286,7 +285,7 @@ def get_glob_lb(yr, day):
         rq.get(f"https://adventofcode.com/{yr}/leaderboard")
         if day is None
         else rq.get(
-            f"https://adventofcode.com/{yr}/leaderboard/day/{day.split(":")[0]}"
+            f"https://adventofcode.com/{yr}/leaderboard/day/{day.split(':')[0]}"
         )
     )
     lb_soup = BeautifulSoup(lb_raw.content, "html.parser")
@@ -392,6 +391,7 @@ def get_puzzle(yr, day, part):
     Returns:
         puzzle (dict): The parsed puzzle text as a dictionary.
     """
+    # TODO: error if part is inaccessible
     if op.exists(f"{data_dir}/pz_{yr}_{day}_{part}"):
         with open(f"{data_dir}/pz_{yr}_{day}_{part}", "rb") as f:
             return pickle.load(f)
