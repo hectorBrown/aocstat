@@ -397,7 +397,7 @@ def _pz(args=sys.argv[1:]):
     if output is None:
         raise ValueError("Output is None, something went wrong.")
 
-    _dynamic_page(output, args["no_pager"] or args["subcommand"] == "input")
+    _dynamic_page(output, args["no_pager"] or subcommand == "input")
 
 
 def _dynamic_page(output, no_pager):
