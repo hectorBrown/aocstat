@@ -61,22 +61,22 @@ def get_cookie(cache_invalid=False):
             # TODO: stop these from creating logs wherever you auth
             try:
                 if selection in ["1", ""]:
-                    wd = webdriver.Firefox()
+                    wd = webdriver.Firefox()  # type: ignore
                 elif selection == "2":
-                    wd = webdriver.Chrome()
+                    wd = webdriver.Chrome()  # type: ignore
                 elif selection == "3":
-                    wd = webdriver.Edge()
+                    wd = webdriver.Edge()  # type: ignore
                 elif selection == "4":
-                    wd = webdriver.Ie()
+                    wd = webdriver.Ie()  # type: ignore
                 elif selection == "5":
-                    wd = webdriver.Safari()
+                    wd = webdriver.Safari()  # type: ignore
             except Exception:
                 print(
                     "\nYou don't have a driver installed for that browser, please try again.\n"
                 )
                 return get_cookie(cache_invalid=cache_invalid)
 
-            wd.get(f"https://adventofcode.com/{get_most_recent_year()}/auth/login")  # pyright: ignore
+            wd.get(f"https://adventofcode.com/{get_most_recent_year()}/auth/login")  # type: ignore
             print("\nPlease authenticate yourself with one of the methods given.")
 
             def logged_in(wd):
@@ -87,13 +87,13 @@ def get_cookie(cache_invalid=False):
                     return False
 
             try:
-                WebDriverWait(wd, timeout=1000, poll_frequency=0.5).until(logged_in)  # pyright: ignore
+                WebDriverWait(wd, timeout=1000, poll_frequency=0.5).until(logged_in)  # type: ignore
             except TimeoutException:
                 print("\nTimed out waiting for authentication.\n")
-                wd.quit()  # pyright: ignore
+                wd.quit()  # type: ignore
 
-            cookie = wd.get_cookie("session")["value"]  # pyright: ignore
-            wd.quit()  # pyright: ignore
+            cookie = wd.get_cookie("session")["value"]  # type: ignore
+            wd.quit()  # type: ignore
             print("\nAuthenticated.")
         else:
             print(
@@ -298,13 +298,13 @@ def get_glob_lb(yr, day):
     else:
         split = lb_soup.find(
             "span", {"class": "leaderboard-daydesc-first"}, recursive=True
-        ).parent  # pyright: ignore
+        ).parent  # type: ignore
         entries_soup = [
             x
             for x in (
-                split.previous_siblings  # pyright: ignore
+                split.previous_siblings  # type: ignore
                 if day.split(":")[1] == "2"
-                else split.next_siblings  # pyright: ignore
+                else split.next_siblings  # type: ignore
             )
             if isinstance(x, Tag)
             if "class" in x.attrs
@@ -315,7 +315,7 @@ def get_glob_lb(yr, day):
     last_pos = None
 
     for entry_soup in entries_soup:
-        id = int(entry_soup.get("data-user-id"))  # pyright: ignore
+        id = int(entry_soup.get("data-user-id"))  # type: ignore
         lb["members"][id], last_pos = _parse_leaderboard_entry(entry_soup, last_pos)
 
     lb["day"] = day
@@ -356,7 +356,7 @@ def get_lb_ids(force_update=False):
     lbs_soup = BeautifulSoup(lbs_raw.content, "html.parser")
     lb_ids = [
         int(link.attrs["href"].split("view/")[1])
-        for link in lbs_soup.find_all("a", string="[View]")
+        for link in lbs_soup.find_all("a", string="[View]")  # type: ignore
     ]
     with open(f"{data_dir}/lb_ids", "wb") as f:
         pickle.dump(
@@ -414,7 +414,7 @@ def get_puzzle(yr, day, part):
     part_soup = parts_available[part - 1]
 
     puzzle = {}
-    puzzle["title"] = parts_available[0].contents[0].string.split(": ")[1][:-4]
+    puzzle["title"] = parts_available[0].contents[0].string.split(": ")[1][:-4]  # type: ignore
     puzzle["text"] = _parse_puzzle_text(part_soup.contents[1:])
 
     with open(f"{data_dir}/pz_{yr}_{day}_{part}", "wb") as f:
@@ -490,7 +490,7 @@ def submit_answer(yr, day, answer):
     res_soup = BeautifulSoup(res.content, "html.parser")
     verdict = None
     try:
-        verdict = res_soup.find("article").find("p").contents[0].string  # pyright: ignore
+        verdict = res_soup.find("article").find("p").contents[0].string  # type: ignore
     except Exception:
         raise Exception("Unexpected response from server, maybe try again later?")
     if "You gave an answer too recently" in verdict:
@@ -524,6 +524,6 @@ def get_current_level(yr, day):
     success = pz_soup.find_all("p", {"class": "day-success"})
     if len(success) == 0:
         return 1
-    if "**" in success[0].contents[0]:
+    if "**" in success[0].contents[0].string:  # type: ignore
         return None
     return 2
