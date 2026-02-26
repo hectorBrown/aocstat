@@ -5,6 +5,7 @@ import aocstat.api as api
 import appdirs as ad
 
 config_dir = ad.user_config_dir(appname="aocstat", appauthor=False)
+# TODO: implement default day and year, that step up with each submitted part 2 -- needs validation, should go in the api and be called from main too -- should also include a default part
 
 DEFAULTS = {
     "ttl": 900,

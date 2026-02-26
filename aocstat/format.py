@@ -231,6 +231,7 @@ def format_puzzle(puzzle, day, year, part, ansi_on):
     Returns:
         puzzle_str (str): A 'pretty' string representing the puzzle.
     """
+    # TODO: code block on 2025 day 2 part 1 doesn't format right
     res = ""
     res += _colour(f"Day {day} - {year} | Part {part}\n\n", "bright_grey", ansi_on)
     res += _colour(f"--- {puzzle['title']} ---\n\n", "bold_bright_white", ansi_on)

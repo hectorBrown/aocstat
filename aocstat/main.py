@@ -433,10 +433,11 @@ def _pz_input(args):
         args["day"] = api.get_most_recent_day(args["year"])
     input = api.get_input(yr=args["year"], day=args["day"])
     output = input
-    print(output)
+    print(output, end="")
 
 
 def _pz_submit(args):
+    # TODO: list countdown when puzzle answered too recently
     parser = _puzzle_parser("submit")
     args = vars(parser.parse_args(args))
     if args["day"] is not None and args["day"] > api.get_most_recent_day(args["year"]):
