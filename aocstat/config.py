@@ -1,5 +1,6 @@
 import json
 import os.path as op
+import aocstat.api as api
 
 import appdirs as ad
 
@@ -7,11 +8,25 @@ config_dir = ad.user_config_dir(appname="aocstat", appauthor=False)
 
 DEFAULTS = {
     "ttl": 900,
+    "default_lb_id": None,
 }
+
+
 # types defined so that they raise an error if the value is not of the correct type, but return value in correct type if it is castable
-TYPES = {"ttl": lambda x: int(x)}
+def _default_lb_id_type(x):
+    if int(x) in api.get_lb_ids() or x is None:
+        return int(x)
+    else:
+        raise ValueError()
+
+
+TYPES = {
+    "ttl": lambda x: int(x),
+    "default_lb_id": _default_lb_id_type,
+}
 TYPE_ERRS = {
     "ttl": "Value of 'ttl' must be an integer.",
+    "default_lb_id": "Value of lb_id must be a valid leaderabord ID or None.",
 }
 
 

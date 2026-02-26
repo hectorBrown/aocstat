@@ -277,12 +277,13 @@ def _parse_leaderboard_entry(entry_soup, last_pos):
     return entry, last_pos
 
 
-def get_glob_lb(yr, day):
+def get_glob_lb(yr, day, part):
     """Gets the global leaderboard, from the internet as long as the user is connected, and caches it. If the user is not connected, the cached leaderboard is returned.
 
     Args:
         yr (int): Year of the event.
-        day (str): Day of the event in the form 'd:p' where d is the day and p is the part.
+        day (int): Day of the event.
+        part (int): Which part to view.
 
     Returns:
         lb (dict): Raw leaderboard data. (None if a global leaderboard doesn't exist)
@@ -299,9 +300,7 @@ def get_glob_lb(yr, day):
     lb_raw = (
         rq.get(f"https://adventofcode.com/{yr}/leaderboard")
         if day is None
-        else rq.get(
-            f"https://adventofcode.com/{yr}/leaderboard/day/{day.split(':')[0]}"
-        )
+        else rq.get(f"https://adventofcode.com/{yr}/leaderboard/day/{day}")
     )
     lb_soup = BeautifulSoup(lb_raw.content, "html.parser")
 
@@ -387,6 +386,19 @@ def get_lb_ids(force_update=False):
             f,
         )
     return lb_ids
+
+
+def get_default_lb_id():
+    """
+    Gets the default private leaderboard id for the given year.
+
+    Returns:
+        lb_id (int|None): The default private leaderboard id for the given year. None if the user doesn't have a private leaderboard for that year.
+    """
+    if config.get("default_lb_id") is not None:
+        return config.get("default_lb_id")
+    ids = get_lb_ids()
+    return ids[-1] if len(ids) else None
 
 
 def _parse_puzzle_text(tags, attributes=[]):

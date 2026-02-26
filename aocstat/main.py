@@ -4,7 +4,6 @@ import subprocess as sp
 import os.path as op
 import os
 import pydoc
-import re
 import shutil
 import sys
 
@@ -52,9 +51,26 @@ def start(args=sys.argv[1:]):
 
 def _lb(args=sys.argv[1:]):
     # TODO: add leaderboard selection
-    # TODO: add handling for 2025 no global board
     parser = argparse.ArgumentParser(
         prog="aocstat lb", description="Interact with Advent of Code leaderboards."
+    )
+    parser.add_argument(
+        "subcommand",
+        choices=["priv", "glob"],
+        help="Choose whether to interact with private or global leaderboards. Available options are 'priv' and 'glob'.",
+    )
+    parser.add_argument("subcommand args", nargs=argparse.REMAINDER)
+    args = vars(parser.parse_args(args))
+    if args["subcommand"] == "global":
+        _glob_lb(args["subcommand args"])
+    else:
+        _priv_lb(args["subcommand args"])
+
+
+def _priv_lb(args):
+    parser = argparse.ArgumentParser(
+        prog="aocstat lb",
+        description="Interact with private Advent of Code leaderboards.",
     )
 
     def year_type(arg):
@@ -86,52 +102,14 @@ def _lb(args=sys.argv[1:]):
         help="Disable ANSI colour output.",
     )
 
-    def glob_lb_day_type(arg):
-        if re.match(r"^(0?[1-9]|1[0-9]|2[0-5]):[12]$", arg):
-            return arg
-        else:
-            raise argparse.ArgumentTypeError(
-                "day:part must be in the form 'd:p' where d is the day and p is the part."
-            )
-
-    if api.get_lb_ids():
-        priv_glob = parser.add_mutually_exclusive_group()
-
-        def lb_id_type(arg):
-            lb_ids = api.get_lb_ids()
-            if arg in [str(x) for x in lb_ids]:
-                return int(arg)
-            else:
-                raise argparse.ArgumentTypeError(
-                    f"Invalid leaderboard id '{arg}'. Must be one of {lb_ids}."
-                )
-
-        priv_glob.add_argument(
-            "--id",
-            metavar="ID",
-            type=lb_id_type,
-            help="Specify a private leaderboard id. Cannot be used with '-g, --global'",
-            default=api.get_lb_ids()[-1],
-        )
-
-        priv_glob.add_argument(
-            "-g",
-            "--global",
-            default=False,
-            nargs="?",
-            metavar="DAY",
-            type=glob_lb_day_type,
-            help="View the global leaderboard. optionally include a day number in the form ('[1..25]:[1,2]') where the number after the colon denotes which part to view. Cannot be used with '--id'",
-        )
-    else:
-        parser.add_argument(
-            "-d",
-            "--day",
-            default=False,
-            type=glob_lb_day_type,
-            dest="global",
-            help="A day number in the form ('[1..25]:[1,2]') where the number after the colon denotes which part to view. Will default to the overall leaderboard if not provided.",
-        )
+    parser.add_argument(
+        "--id",
+        metavar="ID",
+        choices=api.get_lb_ids(),
+        type=int,
+        help="Specify a private leaderboard id.",
+        default=api.get_default_lb_id(),
+    )
 
     parser.add_argument(
         "-f",
@@ -152,28 +130,95 @@ def _lb(args=sys.argv[1:]):
         help="Print the leaderboard in multiple columns with the specified padding.",
     )
     args = vars(parser.parse_args(args))
-    if args["global"]:
-        if int(args["global"].split(":")[0]) > api.get_most_recent_day(args["year"]):
-            parser.error("The day selected is in the future.")
-    output = None
-    if api.get_lb_ids():
-        if args["global"] is False:
-            _lb = api.get_priv_lb(
-                id=args["id"], yr=args["year"], force_update=args["force"]
-            )
-            output = fmt.format_priv_lb(*_lb, ansi_on=not args["no_colour"])
-        else:
-            _lb = api.get_glob_lb(yr=args["year"], day=args["global"])
-            if _lb[0] is None:
-                output = "There is no global leaderboard for the selected year."
-            else:
-                output = fmt.format_glob_lb(*_lb, ansi_on=not args["no_colour"])
+    ids = api.get_lb_ids()
+    if ids:
+        _lb = api.get_priv_lb(
+            id=args["id"], yr=args["year"], force_update=args["force"]
+        )
+        output = fmt.format_priv_lb(*_lb, ansi_on=not args["no_colour"])
     else:
-        if args["global"] is False:
-            output = "You have no private leaderboard to display."
+        output = "You have no private leaderboard to display."
+
+    if args["columns"] is not None:
+        output = fmt.columnize(output, args["columns"])
+    _dynamic_page(output, args["no_pager"])
+
+
+def _glob_lb(args):
+    parser = argparse.ArgumentParser(
+        prog="aocstat lb",
+        description="Interact with the global Advent of Code leaderboards.",
+    )
+
+    def year_type(arg):
+        if int(arg) >= 2015 and int(arg) < 2025:
+            return int(arg)
         else:
-            _lb = api.get_glob_lb(yr=args["year"], day=args["global"])
-            output = fmt.format_glob_lb(*_lb, ansi_on=not args["no_colour"])
+            raise argparse.ArgumentTypeError(
+                "The year must be after 2014, and before 2025."
+            )
+
+    parser.add_argument(
+        "-y",
+        "--year",
+        action="store",
+        metavar="YEAR",
+        type=year_type,
+        help="Specify a year other than the most recent event.",
+        default=2024,
+    )
+
+    parser.add_argument(
+        "-d",
+        "--day",
+        default=1,
+        choices=range(1, 26),
+        type=int,
+        help="A day number in the form ('[1..25]:[1,2]'), will default to 1.",
+    )
+
+    parser.add_argument(
+        "-p",
+        "--part",
+        default=1,
+        choices=range(1, 3),
+        type=int,
+        help="A part number (either 1 or 2), will default to 1.",
+    )
+
+    parser.add_argument(
+        "--no-pager",
+        action="store_true",
+        default=False,
+        help="Use a pager to view the output. Defaults to on for output longer than the terminal height (except for displaying input).",
+    )
+    parser.add_argument(
+        "--no-colour",
+        action="store_true",
+        help="Disable ANSI colour output.",
+    )
+    parser.add_argument(
+        "-f",
+        "--force",
+        default=False,
+        action="store_true",
+        help="Force update leaderboard, even if within the cache ttl. "
+        + "Please use responsibly (preferably not at all) and be considerate of others, especially in December!",
+    )
+    parser.add_argument(
+        "-c",
+        "--columns",
+        default=None,
+        const=1,
+        type=int,
+        action="store",
+        nargs="?",
+        help="Print the leaderboard in multiple columns with the specified padding.",
+    )
+
+    args = vars(parser.parse_args(args))
+    _lb = api.get_glob_lb(yr=args["year"], day=args["day"], part=args["part"])
+    output = fmt.format_glob_lb(*_lb, ansi_on=not args["no_colour"])
 
     if args["columns"] is not None:
         output = fmt.columnize(output, args["columns"])
@@ -253,27 +298,10 @@ def _config(args=sys.argv[1:]):
                 config.reset(args2["key"])
 
 
-def _pz(args=sys.argv[1:]):
-    parser = argparse.ArgumentParser(
-        prog="aocstat pz", description="Interact with Advent of Code puzzles."
-    )
-    parser.add_argument(
-        "subcommand",
-        choices=["view", "input", "submit"],
-        help="Subcommand to use. Available options are 'view' (view puzzle instructions), 'input' (get puzzle input), or 'submit' (submit puzzle answer).",
-    )
-    parser.add_argument("subcommand args", nargs=argparse.REMAINDER)
-    args1 = vars(parser.parse_args(args))
-    subcommand = args1["subcommand"]
-
+def _puzzle_parser(subcommand):
     parser = argparse.ArgumentParser(
         f"aocstat pz {subcommand}", "Interact with Advent of Code puzzles."
     )
-    if subcommand == "submit":
-        parser.add_argument(
-            "answer",
-            type=str,
-        )
 
     def year_type(arg):
         if int(arg) >= 2015 and int(arg) <= api.get_most_recent_year():
@@ -292,17 +320,11 @@ def _pz(args=sys.argv[1:]):
         default=api.get_most_recent_year(),
     )
 
-    def day_type(arg):
-        if re.match(r"^(0?[1-9]|1[0-9]|2[0-5])$", arg):
-            return int(arg)
-        else:
-            raise argparse.ArgumentTypeError("day must be in the form '[1..25]'.")
-
     parser.add_argument(
         "-d",
         "--day",
         action="store",
-        type=day_type,
+        type=int,
         default=None,
         help="Day of puzzle. Default is the current day.",
     )
@@ -315,91 +337,135 @@ def _pz(args=sys.argv[1:]):
         default=1,
         help="Part of puzzle. Default is 1.",
     )
-    parser.add_argument(
-        "-w",
-        "--width",
-        action="store",
-        type=int,
-        default=80,
-        help="Width of the output. Default is 80 characters. Set to 0 for no wrapping.",
-    )
-    parser.add_argument(
-        "-c",
-        "--columns",
-        default=None,
-        const=1,
-        type=int,
-        action="store",
-        nargs="?",
-        help="Print the output in multiple columns with the specified padding.",
-    )
-    parser.add_argument(
-        "--no-pager",
-        action="store_true",
-        default=False,
-        help="Use a pager to view the output. Defaults to on for output longer than the terminal height (except for displaying input).",
-    )
-    parser.add_argument(
-        "--no-colour",
-        action="store_true",
-        help="Disable ANSI colour output.",
-    )
 
-    args = vars(parser.parse_args(args1["subcommand args"]))
+    if subcommand == "submit":
+        parser.add_argument(
+            "answer",
+            type=str,
+        )
+    elif subcommand == "view":
+        parser.add_argument(
+            "-w",
+            "--width",
+            action="store",
+            type=int,
+            default=80,
+            help="Width of the output. Default is 80 characters. Set to 0 for no wrapping.",
+        )
+        parser.add_argument(
+            "-c",
+            "--columns",
+            default=None,
+            const=1,
+            type=int,
+            action="store",
+            nargs="?",
+            help="Print the output in multiple columns with the specified padding.",
+        )
+        parser.add_argument(
+            "--no-pager",
+            action="store_true",
+            default=False,
+            help="Use a pager to view the output. Defaults to on for output longer than the terminal height (except for displaying input).",
+        )
+        parser.add_argument(
+            "--no-colour",
+            action="store_true",
+            help="Disable ANSI colour output.",
+        )
+    return parser
 
+
+def _pz(args=sys.argv[1:]):
+    parser = argparse.ArgumentParser(
+        prog="aocstat pz", description="Interact with Advent of Code puzzles."
+    )
+    parser.add_argument(
+        "subcommand",
+        choices=["view", "input", "submit"],
+        help="Subcommand to use. Available options are 'view' (view puzzle instructions), 'input' (get puzzle input), or 'submit' (submit puzzle answer).",
+    )
+    parser.add_argument("subcommand args", nargs=argparse.REMAINDER)
+    args = vars(parser.parse_args(args))
+    if args["subcommand"] == "view":
+        _pz_view(args["subcommand args"])
+    if args["subcommand"] == "input":
+        _pz_input(args["subcommand args"])
+    if args["subcommand"] == "submit":
+        _pz_submit(args["subcommand args"])
+
+
+def _pz_view(args):
+    parser = _puzzle_parser("view")
+    args = vars(parser.parse_args(args))
+    if args["day"] is not None and args["day"] > api.get_most_recent_day(args["year"]):
+        parser.error("Day cannot be in the future.")
+    if args["day"] is None:
+        args["day"] = api.get_most_recent_day(args["year"])
+    puzzle = None
+    try:
+        puzzle = api.get_puzzle(yr=args["year"], day=args["day"], part=args["part"])
+    except ValueError:
+        parser.error("The puzzle you are trying to view is not available to you yet.")
+    if puzzle is None:
+        parser.error("You have to complete the previous part to view this puzzle.")
+    output = fmt.format_puzzle(
+        puzzle,
+        args["day"],
+        args["year"],
+        args["part"],
+        ansi_on=not args["no_colour"],
+    )
+    if args["width"] > 0:
+        output = fmt.wrap_text(output, args["width"])
+    if args["columns"] is not None:
+        output = fmt.columnize(output, args["columns"])
+
+    _dynamic_page(output, args["no_pager"])
+
+
+def _pz_input(args):
+    parser = _puzzle_parser("input")
+    args = vars(parser.parse_args(args))
+    if args["day"] is not None and args["day"] > api.get_most_recent_day(args["year"]):
+        parser.error("Day cannot be in the future.")
+    if args["day"] is None:
+        args["day"] = api.get_most_recent_day(args["year"])
+    input = api.get_input(yr=args["year"], day=args["day"])
+    output = input
+    print(output)
+
+
+def _pz_submit(args):
+    parser = _puzzle_parser("submit")
+    args = vars(parser.parse_args(args))
     if args["day"] is not None and args["day"] > api.get_most_recent_day(args["year"]):
         parser.error("Day cannot be in the future.")
     if args["day"] is None:
         args["day"] = api.get_most_recent_day(args["year"])
 
     output = None
-
-    if subcommand == "view":
-        puzzle = None
-        try:
-            puzzle = api.get_puzzle(yr=args["year"], day=args["day"], part=args["part"])
-        except ValueError:
-            parser.error(
-                "The puzzle you are trying to view is not available to you yet."
-            )
-        if puzzle is None:
-            parser.error("You have to complete the previous part to view this puzzle.")
-        output = fmt.format_puzzle(
-            puzzle,
-            args["day"],
-            args["year"],
-            args["part"],
-            ansi_on=not args["no_colour"],
+    correct, timeout, too_high = api.submit_answer(
+        args["year"], args["day"], args["answer"]
+    )
+    if correct is None:
+        parser.error("You have completed every part for this day.")
+    elif timeout:
+        parser.error(
+            "You submitted an answer for this puzzle too recently. Please wait before submitting again."
         )
-        if args["width"] > 0:
-            output = fmt.wrap_text(output, args["width"])
-        if args["columns"] is not None:
-            output = fmt.columnize(output, args["columns"])
-    elif subcommand == "input":
-        input = api.get_input(yr=args["year"], day=args["day"])
-        output = input
-    elif subcommand == "submit":
-        correct, timeout, too_high = api.submit_answer(
-            args["year"], args["day"], args["answer"]
-        )
-        if correct is None:
-            parser.error("You have completed every part for this day.")
-        elif timeout:
-            parser.error(
-                "You submitted an answer for this puzzle too recently. Please wait before submitting again."
-            )
-        elif not correct:
-            if too_high:
-                output = "That's not the right answer. Your answer is too high."
-            else:
-                output = "That's not the right answer. Your answer is too low."
-        elif correct:
-            output = "That's the right answer! Congratulations!"
+    elif not correct:
+        if too_high:
+            output = "That's not the right answer. Your answer is too high."
+        else:
+            output = "That's not the right answer. Your answer is too low."
+    elif correct:
+        output = "That's the right answer! Congratulations!"
 
     if output is None:
         raise ValueError("Output is None, something went wrong.")
 
-    _dynamic_page(output, args["no_pager"] or subcommand == "input")
+    print(output)
 
 
 def _dynamic_page(output, no_pager):
