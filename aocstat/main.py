@@ -360,6 +360,8 @@ def _pz(args=sys.argv[1:]):
             parser.error(
                 "The puzzle you are trying to view is not available to you yet."
             )
+        if puzzle is None:
+            parser.error("You have to complete the previous part to view this puzzle.")
         output = fmt.format_puzzle(
             puzzle,
             args["day"],

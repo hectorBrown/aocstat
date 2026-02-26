@@ -133,8 +133,10 @@ def get_most_recent_day(year):
     Returns:
         day (int): The most recently released day for `year`.
     """
-    # TODO: add handling for 12 day year in 2025
     today = dt.date.today()
+    no_days = 25
+    if year >= 2025:
+        no_days = 12
     if (today.year == year and today.month != 12) or year > today.year:
         raise ValueError(
             "You are trying to get the active day for an event that hasn't happened yet."
@@ -142,11 +144,11 @@ def get_most_recent_day(year):
     elif today.year == year:
         return (
             (today.day if dt.datetime.now(timezone.utc).hour >= 5 else today.day - 1)
-            if today.day <= 25
-            else 25
+            if today.day <= no_days
+            else no_days
         )
     else:
-        return 25
+        return no_days
 
 
 def get_user_id():
@@ -393,14 +395,15 @@ def get_puzzle(yr, day, part):
         part (int): Part of the puzzle.
 
     Returns:
-        puzzle (dict): The parsed puzzle text as a dictionary.
+        puzzle (dict|None): The parsed puzzle text as a dictionary. None you haven't unlocked the part yet.
     """
-    # TODO: error if part is inaccessible
     if op.exists(f"{data_dir}/pz_{yr}_{day}_{part}"):
         with open(f"{data_dir}/pz_{yr}_{day}_{part}", "rb") as f:
             return pickle.load(f)
 
     cookie = get_cookie()
+    if part > get_current_level(yr, day):
+        return None
     puzzle_raw = rq.get(
         f"https://adventofcode.com/{yr}/day/{day}",
         cookies={"session": cookie},
