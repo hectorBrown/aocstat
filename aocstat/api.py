@@ -62,7 +62,6 @@ def get_cookie(cache_invalid=False):
         if not selection == "6":
             wd = None
             input("Please press ENTER to open a web browser... ")
-            # TODO: stop these from creating logs wherever you auth
             try:
                 if selection in ["1", ""]:
                     wd = FirefoxWebDriver()
