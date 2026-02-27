@@ -69,7 +69,7 @@ def _lb(args=sys.argv[1:]):
 
 def _priv_lb(args):
     parser = argparse.ArgumentParser(
-        prog="aocstat lb",
+        prog="aocstat lb priv",
         description="Interact with private Advent of Code leaderboards.",
     )
 
@@ -146,7 +146,7 @@ def _priv_lb(args):
 
 def _glob_lb(args):
     parser = argparse.ArgumentParser(
-        prog="aocstat lb",
+        prog="aocstat lb glob",
         description="Interact with the global Advent of Code leaderboards.",
     )
 
