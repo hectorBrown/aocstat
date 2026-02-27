@@ -337,3 +337,20 @@ def columnize(text, padding):
         col_text += "\n"
 
     return col_text
+
+
+def format_time(seconds):
+    """Formats a time in seconds as '{HH}h {MM}m {SS}s'.
+
+    Args:
+        seconds (int): Time in seconds.
+
+    Returns:
+        string (str): Formatted time string.
+    """
+    if seconds < 60:
+        return f"{seconds}s"
+    elif seconds < 3600:
+        return f"{seconds // 60}m {seconds % 60}s"
+    else:
+        return f"{seconds // 3600}h {(seconds % 3600) // 60}m {seconds % 60}s"

@@ -1,4 +1,5 @@
 import argparse
+import time
 import importlib.metadata
 import subprocess as sp
 import os.path as op
@@ -343,6 +344,12 @@ def _puzzle_parser(subcommand):
             "answer",
             type=str,
         )
+        parser.add_argument(
+            "-a",
+            "--auto-wait",
+            help="Automatically wait and resubmit if you submitted an answer too recently.",
+            action="store_true",
+        )
     elif subcommand == "view":
         parser.add_argument(
             "-w",
@@ -437,8 +444,8 @@ def _pz_input(args):
 
 
 def _pz_submit(args):
-    # TODO: auto timeout wait to submit
     parser = _puzzle_parser("submit")
+    input_args = args
     args = vars(parser.parse_args(args))
     if args["day"] is not None and args["day"] > api.get_most_recent_day(args["year"]):
         parser.error("Day cannot be in the future.")
@@ -452,9 +459,16 @@ def _pz_submit(args):
     if correct is None:
         parser.error("You have completed every part for this day.")
     elif timeout:
-        parser.error(
-            f"You submitted an answer for this puzzle too recently. Please wait before submitting again. You have {timeout if timeout < 60 else f'{timeout // 60}m {timeout % 60}'}s left to wait."
-        )
+        if args["auto_wait"]:
+            print("You submitted an answer too recently.")
+            _countdown(timeout)
+            print("\nSubmitting answer...")
+            _pz_submit(input_args)
+            return None
+        else:
+            parser.error(
+                f"You submitted an answer for this puzzle too recently. Please wait before submitting again. You have {fmt.format_time(timeout)} left to wait."
+            )
     elif not correct:
         if too_high:
             output = "That's not the right answer. Your answer is too high."
@@ -474,6 +488,17 @@ def _dynamic_page(output, no_pager):
         pydoc.pager(output)
     else:
         print(output)
+
+
+def _countdown(seconds):
+    max_len = len(f"Waiting {fmt.format_time(seconds)}")
+    for i in range(seconds, 0, -1):
+        output = f"Waiting {fmt.format_time(i)}"
+        if len(output) < max_len:
+            output += " " * (max_len - len(output))
+
+        print(f"{output}\r", end="", flush=True)
+        time.sleep(1)
 
 
 if __name__ == "__main__":
