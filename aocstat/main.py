@@ -18,7 +18,6 @@ if sys.platform == "win32":
 
 
 def start(args=sys.argv[1:]):
-    # TODO: day > 12 is invalid for years 2025 and after
     if not op.exists(api.data_dir):
         os.mkdir(api.data_dir)
     if not op.exists(config.config_dir):
@@ -175,7 +174,7 @@ def _glob_lb(args):
         default=1,
         choices=range(1, 26),
         type=int,
-        help="A day number in the form ('[1..25]:[1,2]'), will default to 1.",
+        help="A day number. Defaults to 1.",
     )
 
     parser.add_argument(
@@ -216,8 +215,9 @@ def _glob_lb(args):
         nargs="?",
         help="Print the leaderboard in multiple columns with the specified padding.",
     )
-
     args = vars(parser.parse_args(args))
+    if args["day"] > api.get_most_recent_day(args["year"]):
+        parser.error("Day cannot be in the future.")
     _lb = api.get_glob_lb(yr=args["year"], day=args["day"], part=args["part"])
     output = fmt.format_glob_lb(*_lb, ansi_on=not args["no_colour"])
 
@@ -326,8 +326,9 @@ def _puzzle_parser(subcommand):
         "--day",
         action="store",
         type=int,
-        default=None,
-        help="Day of puzzle. Default is the current day.",
+        choices=range(1, 26),
+        default=1,
+        help="Day of puzzle.",
     )
     parser.add_argument(
         "-p",
@@ -405,10 +406,8 @@ def _pz(args=sys.argv[1:]):
 def _pz_view(args):
     parser = _puzzle_parser("view")
     args = vars(parser.parse_args(args))
-    if args["day"] is not None and args["day"] > api.get_most_recent_day(args["year"]):
+    if args["day"] > api.get_most_recent_day(args["year"]):
         parser.error("Day cannot be in the future.")
-    if args["day"] is None:
-        args["day"] = api.get_most_recent_day(args["year"])
     puzzle = None
     try:
         puzzle = api.get_puzzle(yr=args["year"], day=args["day"], part=args["part"])
@@ -434,10 +433,8 @@ def _pz_view(args):
 def _pz_input(args):
     parser = _puzzle_parser("input")
     args = vars(parser.parse_args(args))
-    if args["day"] is not None and args["day"] > api.get_most_recent_day(args["year"]):
+    if args["day"] > api.get_most_recent_day(args["year"]):
         parser.error("Day cannot be in the future.")
-    if args["day"] is None:
-        args["day"] = api.get_most_recent_day(args["year"])
     input = api.get_input(yr=args["year"], day=args["day"])
     output = input
     print(output, end="")
@@ -447,10 +444,8 @@ def _pz_submit(args):
     parser = _puzzle_parser("submit")
     input_args = args
     args = vars(parser.parse_args(args))
-    if args["day"] is not None and args["day"] > api.get_most_recent_day(args["year"]):
+    if args["day"] > api.get_most_recent_day(args["year"]):
         parser.error("Day cannot be in the future.")
-    if args["day"] is None:
-        args["day"] = api.get_most_recent_day(args["year"])
 
     output = None
     correct, timeout, too_high = api.submit_answer(
