@@ -437,7 +437,7 @@ def _pz_input(args):
 
 
 def _pz_submit(args):
-    # TODO: list countdown when puzzle answered too recently
+    # TODO: auto timeout wait to submit
     parser = _puzzle_parser("submit")
     args = vars(parser.parse_args(args))
     if args["day"] is not None and args["day"] > api.get_most_recent_day(args["year"]):
@@ -453,7 +453,7 @@ def _pz_submit(args):
         parser.error("You have completed every part for this day.")
     elif timeout:
         parser.error(
-            "You submitted an answer for this puzzle too recently. Please wait before submitting again."
+            f"You submitted an answer for this puzzle too recently. Please wait before submitting again. You have {timeout if timeout < 60 else f'{timeout // 60}m {timeout % 60}'}s left to wait."
         )
     elif not correct:
         if too_high:

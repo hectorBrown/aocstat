@@ -505,9 +505,11 @@ def submit_answer(yr, day, answer):
 
     Returns:
         correct (bool|None): Whether the answer was correct or not. None if the
-        puzzle has already been solved.
-        timeout (bool|None): Whether you have submitted an answer too recently.
-        too_high (bool|None): Whether the incorrect answer you submitted was too high.
+            puzzle has already been solved.
+        timeout (int|None): Time left to wait if you have submitted an answer
+            too recently.
+        too_high (bool|None): Whether the incorrect answer you submitted was
+            too high.
     """
     level = get_current_level(yr, day)
     if level is None:
@@ -522,12 +524,17 @@ def submit_answer(yr, day, answer):
     )
     res_soup = BeautifulSoup(res.content, "html.parser")
     verdict = None
+    parse_error_msg = "Unexpected parsing error, the AOC website may have changed their HTML structure. Please report this to the developers."
     try:
         verdict = res_soup.find("article").find("p").contents[0].string  # type: ignore
     except Exception:
-        raise Exception("Unexpected response from server, maybe try again later?")
-    if "You gave an answer too recently" in verdict:
-        return False, True, None
+        raise Exception(parse_error_msg)
+    timeout_match = re.search(r"You have ((\d+)m )?(\d+)s left to wait", verdict)
+    if timeout_match is not None:
+        to_wait = int(timeout_match.group(3))
+        if timeout_match.group(2) is not None:
+            to_wait += 60 * int(timeout_match.group(2))
+        return False, to_wait, None
     elif "That's not the right answer" in verdict:
         if "your answer is too high" in verdict:
             return False, False, True
