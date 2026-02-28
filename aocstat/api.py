@@ -142,9 +142,7 @@ def get_most_recent_day(year):
         day (int): The most recently released day for `year`.
     """
     today = dt.date.today()
-    no_days = 25
-    if year >= 2025:
-        no_days = 12
+    no_days = get_max_day(year)
     if (today.year == year and today.month != 12) or year > today.year:
         raise ValueError(
             "You are trying to get the active day for an event that hasn't happened yet."
@@ -157,6 +155,21 @@ def get_most_recent_day(year):
         )
     else:
         return no_days
+
+
+def get_max_day(year):
+    """Get the maximum day for a given year.
+
+    Args:
+        year (int): The year of interest.
+
+    Returns:
+        day (int): The maximum day for `year`.
+    """
+    if year >= 2025:
+        return 12
+    else:
+        return 25
 
 
 def get_user_id():
@@ -430,7 +443,7 @@ def get_puzzle(yr, day, part):
             return pickle.load(f)
 
     cookie = get_cookie()
-    if part > get_current_level(yr, day):
+    if part > get_current_part(yr, day):
         return None
     puzzle_raw = rq.get(
         f"https://adventofcode.com/{yr}/day/{day}",
@@ -510,7 +523,7 @@ def submit_answer(yr, day, answer):
         too_high (bool|None): Whether the incorrect answer you submitted was
             too high.
     """
-    level = get_current_level(yr, day)
+    level = get_current_part(yr, day)
     if level is None:
         return None, None, None
 
@@ -544,7 +557,7 @@ def submit_answer(yr, day, answer):
     raise Exception("Unexpected response from server, maybe try again later?")
 
 
-def get_current_level(yr, day):
+def get_current_part(yr, day):
     """Returns the lowest unsolved level for the given year and day.
 
     Args:
@@ -566,3 +579,96 @@ def get_current_level(yr, day):
     if "**" in success[0].contents[0].string:  # type: ignore
         return None
     return 2
+
+
+def get_default_puzzle(year, day, part):
+    """Finds the default puzzle (year, day, part) based on the current progress
+    (if cache_progress is enabled). Otherwise find the earliest uncompleted
+    puzzle. Has sane defaults for every combination of supplied and unsupplied
+    year, day and part.
+
+    Args:
+        year (int|None): The year of the puzzle. If None, the most recent year
+            is used.
+        day (int|None): The day of the puzzle. If None, the earliest
+            uncompleted day is used.
+        part (int|None): The part of the puzzle. If None, the earliest
+            uncompleted part is used.
+
+    Returns:
+        year (int): The year of the default puzzle.
+        day (int): The day of the default puzzle.
+        part (int): The part of the default puzzle.
+    """
+    # if we are caching progress, check for the existence of a cache. If it
+    # exists, return the contents... when submitting we need to update this
+    # cache on a correct answer.
+    if year is None and day is None and part is None:
+        if config.get("cache_progress") and op.exists(f"{data_dir}/prog"):
+            with open(f"{data_dir}/prog", "rb") as f:
+                output = pickle.load(f)
+                return output["year"], output["day"], output["part"]
+
+    if year is None:
+        year = get_most_recent_year()
+    if day is None:
+        day = get_earliest_uncompleted_day(year)
+    if part is None:
+        part = get_current_part(year, day)
+    output = {"year": year, "day": day, "part": part}
+    if config.get("cache_progress"):
+        with open(f"{data_dir}/prog", "wb") as f:
+            pickle.dump(output, f)
+    return output["year"], output["day"], output["part"]
+
+
+def get_earliest_uncompleted_day(year):
+    """Gets the earliest uncompleted day for a given year.
+
+    Args:
+        year (int): The year of interest.
+
+    Returns:
+        day (int): The earliest uncompleted day for `year`.
+    """
+    day = 1
+    while get_current_part(year, day) is None:
+        day += 1
+    return day
+
+
+def set_prog(year, day, part):
+    """Sets the progress (year, day, part) in cache. Does nothing if
+    cache_progress is not enabled.
+
+    Args:
+        year (int): The year of the default puzzle.
+        day (int): The day of the default puzzle.
+        part (int): The part of the default puzzle.
+    """
+    if config.get("cache_progress"):
+        with open(f"{data_dir}/prog", "wb") as f:
+            pickle.dump({"year": year, "day": day, "part": part}, f)
+
+
+def step_progress():
+    """Steps progress to the next part, and if the current part is 2, steps to
+    the next day. If cache_progress is not enabled, this function does
+    nothing."""
+    if not config.get("cache_progress"):
+        return
+    if not op.exists(f"{data_dir}/prog"):
+        return
+    with open(f"{data_dir}/prog", "rb") as f:
+        prog = pickle.load(f)
+    if prog["part"] == 1:
+        prog["part"] = 2
+    else:
+        prog["part"] = 1
+        prog["day"] += 1
+        if prog["day"] > get_max_day(prog["year"]):
+            prog["day"] = 1
+            prog["year"] += 1
+
+    with open(f"{data_dir}/prog", "wb") as f:
+        pickle.dump(prog, f)

@@ -299,7 +299,7 @@ def _config(args=sys.argv[1:]):
                 config.reset(args2["key"])
 
 
-def _puzzle_parser(subcommand):
+def _parse_puzzle_args(subcommand, args):
     parser = argparse.ArgumentParser(
         f"aocstat pz {subcommand}", "Interact with Advent of Code puzzles."
     )
@@ -318,25 +318,30 @@ def _puzzle_parser(subcommand):
         action="store",
         type=year_type,
         help="Year of puzzle. Default is the most recent year.",
-        default=api.get_most_recent_year(),
+        default=None,
     )
+
+    def day_type(arg):
+        if int(arg) >= 1 and int(arg) <= 25:
+            return int(arg)
+        else:
+            raise argparse.ArgumentTypeError("Day must be between 1 and 25.")
 
     parser.add_argument(
         "-d",
         "--day",
         action="store",
-        type=int,
-        choices=range(1, 26),
-        default=1,
+        type=day_type,
+        default=None,
         help="Day of puzzle.",
     )
+
     parser.add_argument(
         "-p",
         "--part",
         action="store",
-        choices=[1, 2],
         type=int,
-        default=1,
+        default=None,
         help="Part of puzzle. Default is 1.",
     )
 
@@ -381,7 +386,27 @@ def _puzzle_parser(subcommand):
             action="store_true",
             help="Disable ANSI colour output.",
         )
-    return parser
+    output = vars(parser.parse_args(args))
+    output["year"], output["day"], output["part"] = api.get_default_puzzle(
+        output["year"], output["day"], output["part"]
+    )
+    if output["day"] > api.get_most_recent_day(output["year"]):
+        parser.error("Day cannot be in the future.")
+    if output["part"] > api.get_current_part(output["year"], output["day"]):
+        parser.error(
+            "You have to complete the previous part to interact with this puzzle."
+        )
+    if api.get_current_part(output["year"], output["day"]) == 2 and output["part"] == 1:
+        parser.error("You have already completed part 1 of this puzzle.")
+    if api.get_current_part(output["year"], output["day"]) is None:
+        parser.error("You have already completed every part of this puzzle.")
+
+    if not (
+        output["year"] is None and output["day"] is None and output["part"] is None
+    ):
+        api.set_prog(output["year"], output["day"], output["part"])
+
+    return output
 
 
 def _pz(args=sys.argv[1:]):
@@ -404,17 +429,9 @@ def _pz(args=sys.argv[1:]):
 
 
 def _pz_view(args):
-    parser = _puzzle_parser("view")
-    args = vars(parser.parse_args(args))
-    if args["day"] > api.get_most_recent_day(args["year"]):
-        parser.error("Day cannot be in the future.")
+    args = _parse_puzzle_args("view", args)
     puzzle = None
-    try:
-        puzzle = api.get_puzzle(yr=args["year"], day=args["day"], part=args["part"])
-    except ValueError:
-        parser.error("The puzzle you are trying to view is not available to you yet.")
-    if puzzle is None:
-        parser.error("You have to complete the previous part to view this puzzle.")
+    puzzle = api.get_puzzle(yr=args["year"], day=args["day"], part=args["part"])
     output = fmt.format_puzzle(
         puzzle,
         args["day"],
@@ -431,29 +448,21 @@ def _pz_view(args):
 
 
 def _pz_input(args):
-    parser = _puzzle_parser("input")
-    args = vars(parser.parse_args(args))
-    if args["day"] > api.get_most_recent_day(args["year"]):
-        parser.error("Day cannot be in the future.")
+    args = _parse_puzzle_args("input", args)
     input = api.get_input(yr=args["year"], day=args["day"])
     output = input
     print(output, end="")
 
 
 def _pz_submit(args):
-    parser = _puzzle_parser("submit")
     input_args = args
-    args = vars(parser.parse_args(args))
-    if args["day"] > api.get_most_recent_day(args["year"]):
-        parser.error("Day cannot be in the future.")
+    args = _parse_puzzle_args("submit", args)
 
     output = None
     correct, timeout, too_high = api.submit_answer(
         args["year"], args["day"], args["answer"]
     )
-    if correct is None:
-        parser.error("You have completed every part for this day.")
-    elif timeout:
+    if timeout:
         if args["auto_wait"]:
             print("You submitted an answer too recently.")
             _countdown(timeout)
@@ -461,7 +470,7 @@ def _pz_submit(args):
             _pz_submit(input_args)
             return None
         else:
-            parser.error(
+            print(
                 f"You submitted an answer for this puzzle too recently. Please wait before submitting again. You have {fmt.format_time(timeout)} left to wait."
             )
     elif not correct:
@@ -471,6 +480,7 @@ def _pz_submit(args):
             output = "That's not the right answer. Your answer is too low."
     elif correct:
         output = "That's the right answer! Congratulations!"
+        api.step_progress()
 
     if output is None:
         raise ValueError("Output is None, something went wrong.")

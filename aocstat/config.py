@@ -5,11 +5,11 @@ import aocstat.api as api
 import appdirs as ad
 
 config_dir = ad.user_config_dir(appname="aocstat", appauthor=False)
-# TODO: implement default day and year, that step up with each submitted part 2 -- needs validation, should go in the api and be called from main too -- should also include a default part
 
 DEFAULTS = {
     "ttl": 900,
     "default_lb_id": None,
+    "cache_progress": True,
 }
 
 
@@ -24,10 +24,12 @@ def _default_lb_id_type(x):
 TYPES = {
     "ttl": lambda x: int(x),
     "default_lb_id": _default_lb_id_type,
+    "cache_progress": lambda x: bool(x),
 }
 TYPE_ERRS = {
     "ttl": "Value of 'ttl' must be an integer.",
     "default_lb_id": "Value of lb_id must be a valid leaderabord ID or None.",
+    "cache_progress": "Value of 'cache_progress' must be a boolean.",
 }
 
 
