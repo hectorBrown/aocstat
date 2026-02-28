@@ -164,26 +164,30 @@ def _glob_lb(args):
         action="store",
         metavar="YEAR",
         type=year_type,
-        help="Specify a year other than the most recent event.",
-        default=2024,
+        default=None,
+        help="The year of the event.",
     )
+
+    def day_type(arg):
+        if int(arg) >= 1 and int(arg) <= 25:
+            return int(arg)
+        else:
+            raise argparse.ArgumentTypeError("Day must be between 1 and 25.")
 
     parser.add_argument(
         "-d",
         "--day",
-        default=1,
-        choices=range(1, 26),
-        type=int,
-        help="A day number. Defaults to 1.",
+        default=None,
+        type=day_type,
+        help="The day of the event.",
     )
 
     parser.add_argument(
         "-p",
         "--part",
-        default=1,
-        choices=range(1, 3),
+        default=None,
         type=int,
-        help="A part number (either 1 or 2), will default to 1.",
+        help="A part number (either 1 or 2).",
     )
 
     parser.add_argument(
@@ -216,6 +220,9 @@ def _glob_lb(args):
         help="Print the leaderboard in multiple columns with the specified padding.",
     )
     args = vars(parser.parse_args(args))
+    args["year"], args["day"], args["part"] = api.get_default_puzzle(
+        args["year"], args["day"], args["part"]
+    )
     if args["day"] > api.get_most_recent_day(args["year"]):
         parser.error("Day cannot be in the future.")
     _lb = api.get_glob_lb(yr=args["year"], day=args["day"], part=args["part"])
@@ -342,7 +349,7 @@ def _parse_puzzle_args(subcommand, args):
         action="store",
         type=int,
         default=None,
-        help="Part of puzzle. Default is 1.",
+        help="Part of puzzle.",
     )
 
     if subcommand == "submit":
