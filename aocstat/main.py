@@ -61,7 +61,7 @@ def _lb(args=sys.argv[1:]):
     )
     parser.add_argument("subcommand args", nargs=argparse.REMAINDER)
     args = vars(parser.parse_args(args))
-    if args["subcommand"] == "global":
+    if args["subcommand"] == "glob":
         _glob_lb(args["subcommand args"])
     else:
         _priv_lb(args["subcommand args"])
@@ -225,6 +225,8 @@ def _glob_lb(args):
     )
     if args["day"] > api.get_most_recent_day(args["year"]):
         parser.error("Day cannot be in the future.")
+    if args["year"] >= 2025:
+        parser.error("Years 2025 and after don't have global leaderboards.")
     _lb = api.get_glob_lb(yr=args["year"], day=args["day"], part=args["part"])
     output = fmt.format_glob_lb(*_lb, ansi_on=not args["no_colour"])
 
