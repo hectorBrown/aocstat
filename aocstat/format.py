@@ -223,6 +223,9 @@ def format_puzzle(puzzle, day, year, part, ansi_on):
 
     Args:
         puzzle (dict): Puzzle to represent.
+        day (int): Day of the puzzle.
+        year (int): Year of the puzzle.
+        part (int): Part of the puzzle.
         ansi_on (bool): Whether to use ANSI colour codes.
 
     Returns:
@@ -351,3 +354,28 @@ def format_time(seconds):
         return f"{seconds // 60}m {seconds % 60}s"
     else:
         return f"{seconds // 3600}h {(seconds % 3600) // 60}m {seconds % 60}s"
+
+
+def recolour_for_pager(input):
+    """Recolour ANSI colour codes in `output` to be compatible with pagers like less.
+
+    Args:
+        input (str): Text to recolour.
+
+    Returns:
+        output (str): Recoloured text.
+    """
+    output = ""
+    curr_colour = None
+    prev_colour = None
+
+    for line in input.split("\n"):
+        if re.search(r"\033\[[0-9;]*m", line):
+            prev_colour = re.findall(r"\033\[[0-9;]*m", line)[-1]
+        if curr_colour:
+            output += curr_colour + line + "\033[0;97m\n"
+        else:
+            output += line + "\n"
+        curr_colour = prev_colour
+
+    return output

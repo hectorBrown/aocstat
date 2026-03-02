@@ -399,14 +399,21 @@ def _parse_puzzle_args(subcommand, args):
     )
     if output["day"] > api.get_most_recent_day(output["year"]):
         parser.error("Day cannot be in the future.")
-    if output["part"] > api.get_current_part(output["year"], output["day"]):
+
+    if api.get_current_part(output["year"], output["day"]) == 1 and output["part"] == 2:
         parser.error(
             "You have to complete the previous part to interact with this puzzle."
         )
-    if api.get_current_part(output["year"], output["day"]) == 2 and output["part"] == 1:
-        parser.error("You have already completed part 1 of this puzzle.")
-    if api.get_current_part(output["year"], output["day"]) is None:
-        parser.error("You have already completed every part of this puzzle.")
+
+    if subcommand == "submit":
+        if (
+            api.get_current_part(output["year"], output["day"]) == 2
+            and output["part"] == 1
+        ):
+            parser.error("You have already completed part 1 of this puzzle.")
+
+        if api.get_current_part(output["year"], output["day"]) is None:
+            parser.error("You have already completed every part of this puzzle.")
 
     if not (
         output["year"] is None and output["day"] is None and output["part"] is None
@@ -497,7 +504,7 @@ def _pz_submit(args):
 
 def _dynamic_page(output, no_pager):
     if len(output.split("\n")) > shutil.get_terminal_size().lines and not no_pager:
-        pydoc.pager(output)
+        pydoc.pager(fmt.recolour_for_pager(output))
     else:
         print(output)
 

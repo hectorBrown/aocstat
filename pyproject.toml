@@ -1,6 +1,6 @@
 [project]
 name = "aocstat"
-version = "1.5.1"
+version = "1.5.2"
 description = "Command line tool for interacting with Advent of Code."
 readme = "README.md"
 requires-python = ">=3.10"
