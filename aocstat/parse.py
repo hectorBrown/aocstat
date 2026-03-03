@@ -239,7 +239,7 @@ def parse_glob_lb(args):
     output["year"], output["day"], output["part"] = api.get_default_puzzle(
         output["year"], output["day"], output["part"]
     )
-    if output["day"] > api.get_most_recent_day(args["year"]):
+    if output["day"] > api.get_most_recent_day(output["year"]):
         parser.error("Day cannot be in the future.")
     if output["year"] >= 2025:
         parser.error("Years 2025 and after don't have global leaderboards.")
