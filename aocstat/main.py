@@ -56,15 +56,60 @@ def _lb(args=sys.argv[1:]):
     )
     parser.add_argument(
         "subcommand",
-        choices=["priv", "glob"],
-        help="Choose whether to interact with private or global leaderboards. Available options are 'priv' and 'glob'.",
+        choices=["priv", "glob", "select"],
+        help="Choose whether to interact with private or global leaderboards. Available options are 'priv', 'glob', or 'select'.",
     )
     parser.add_argument("subcommand args", nargs=argparse.REMAINDER)
     args = vars(parser.parse_args(args))
     if args["subcommand"] == "glob":
         _glob_lb(args["subcommand args"])
-    else:
+    elif args["subcommand"] == "priv":
         _priv_lb(args["subcommand args"])
+    else:
+        _select_lb(args["subcommand args"])
+
+
+def _select_lb(args):
+    parser = argparse.ArgumentParser(
+        prog="aocstat lb select",
+        description="Select a default private Advent of Code leaderboard.",
+    )
+    parser.add_argument(
+        "-f",
+        "--force",
+        default=False,
+        action="store_true",
+        help="Force update leaderboard, even if within the cache ttl. "
+        + "Please use responsibly (preferably not at all) and be considerate of others, especially in December!",
+    )
+    # just so we error if anything else is passed
+    args = vars(parser.parse_args(args))
+    lb_ids = api.get_lb_ids()
+    lbs = [
+        api.get_priv_lb(lb_id, api.get_most_recent_year(), force_update=args["force"])[
+            0
+        ]
+        for lb_id in lb_ids
+    ]
+    print("Select a private leaderboard to set as default:")
+    for local_id, lb in enumerate(lbs):
+        print(
+            f"{local_id}: {[lb['members'][member]['name'] for member in lb['members']]}"
+        )
+    valid = False
+    selection = None
+    while not valid:
+        selection = input("Enter the number of the leaderboard you want to select: ")
+        try:
+            selection = int(selection)
+            if selection < 0 or selection >= len(lb_ids) or selection is None:
+                raise ValueError()
+            else:
+                valid = True
+        except ValueError:
+            print("Invalid selection, please enter a valid number.")
+    config.set("default_lb_id", lb_ids[selection])  # type:ignore
+    print("Selected leaderboard set as default.")
 
 
 def _priv_lb(args):

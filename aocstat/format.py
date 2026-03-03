@@ -48,6 +48,7 @@ def format_priv_lb(lb, cached, ansi_on):
         )
     res += "\n"
     # TODO: allow ordering selection
+    # TODO: formatting for year >= 2025 shouldn't include days >= 13
 
     # establish left offset from numbering digits & score digits
     members = sorted(
