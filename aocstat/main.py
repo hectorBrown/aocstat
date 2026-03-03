@@ -1,6 +1,4 @@
-import argparse
 import time
-import importlib.metadata
 import subprocess as sp
 import os.path as op
 import os
@@ -11,6 +9,7 @@ import sys
 import aocstat.api as api
 import aocstat.config as config
 import aocstat.format as fmt
+import aocstat.parse as parse
 
 # make ANSI colour work on win
 if sys.platform == "win32":
@@ -23,22 +22,8 @@ def start(args=sys.argv[1:]):
     if not op.exists(config.config_dir):
         os.mkdir(config.config_dir)
 
-    parser = argparse.ArgumentParser(
-        description="Interact with Advent of Code from your terminal."
-    )
-    parser.add_argument(
-        "subcommand",
-        choices=["lb", "purge", "config", "pz"],
-        help="Subcommand to use. Available options are 'lb' (leaderboard), 'purge' (purge cache), 'config' (view and edit config values), or 'pz' (interact with the puzzles).",
-    )
-    parser.add_argument(
-        "-v",
-        "--version",
-        action="version",
-        version=importlib.metadata.version("aocstat"),
-    )
-    parser.add_argument("subcommand args", nargs=argparse.REMAINDER)
-    args = vars(parser.parse_args(args))
+    args = parse.parse_base(args)
+
     if args["subcommand"] == "lb":
         _lb(args=args["subcommand args"])
     elif args["subcommand"] == "purge":
@@ -50,17 +35,7 @@ def start(args=sys.argv[1:]):
 
 
 def _lb(args=sys.argv[1:]):
-    # TODO: add leaderboard selection
-    parser = argparse.ArgumentParser(
-        prog="aocstat lb", description="Interact with Advent of Code leaderboards."
-    )
-    parser.add_argument(
-        "subcommand",
-        choices=["priv", "glob", "select"],
-        help="Choose whether to interact with private or global leaderboards. Available options are 'priv', 'glob', or 'select'.",
-    )
-    parser.add_argument("subcommand args", nargs=argparse.REMAINDER)
-    args = vars(parser.parse_args(args))
+    args = parse.parse_lb(args)
     if args["subcommand"] == "glob":
         _glob_lb(args["subcommand args"])
     elif args["subcommand"] == "priv":
@@ -70,20 +45,7 @@ def _lb(args=sys.argv[1:]):
 
 
 def _select_lb(args):
-    parser = argparse.ArgumentParser(
-        prog="aocstat lb select",
-        description="Select a default private Advent of Code leaderboard.",
-    )
-    parser.add_argument(
-        "-f",
-        "--force",
-        default=False,
-        action="store_true",
-        help="Force update leaderboard, even if within the cache ttl. "
-        + "Please use responsibly (preferably not at all) and be considerate of others, especially in December!",
-    )
-    # just so we error if anything else is passed
-    args = vars(parser.parse_args(args))
+    args = parse.parse_select_lb(args)
     lb_ids = api.get_lb_ids()
     lbs = [
         api.get_priv_lb(lb_id, api.get_most_recent_year(), force_update=args["force"])[
@@ -113,68 +75,7 @@ def _select_lb(args):
 
 
 def _priv_lb(args):
-    parser = argparse.ArgumentParser(
-        prog="aocstat lb priv",
-        description="Interact with private Advent of Code leaderboards.",
-    )
-
-    def year_type(arg):
-        if int(arg) >= 2015 and int(arg) <= api.get_most_recent_year():
-            return int(arg)
-        else:
-            raise argparse.ArgumentTypeError(
-                "The year must be after 2014, and not in the future."
-            )
-
-    parser.add_argument(
-        "-y",
-        "--year",
-        action="store",
-        metavar="YEAR",
-        type=year_type,
-        help="Specify a year other than the most recent event.",
-        default=api.get_most_recent_year(),
-    )
-    parser.add_argument(
-        "--no-pager",
-        action="store_true",
-        default=False,
-        help="Use a pager to view the output. Defaults to on for output longer than the terminal height (except for displaying input).",
-    )
-    parser.add_argument(
-        "--no-colour",
-        action="store_true",
-        help="Disable ANSI colour output.",
-    )
-
-    parser.add_argument(
-        "--id",
-        metavar="ID",
-        choices=api.get_lb_ids(),
-        type=int,
-        help="Specify a private leaderboard id.",
-        default=api.get_default_lb_id(),
-    )
-
-    parser.add_argument(
-        "-f",
-        "--force",
-        default=False,
-        action="store_true",
-        help="Force update leaderboard, even if within the cache ttl. "
-        + "Please use responsibly (preferably not at all) and be considerate of others, especially in December!",
-    )
-    parser.add_argument(
-        "-c",
-        "--columns",
-        default=None,
-        const=1,
-        type=int,
-        action="store",
-        nargs="?",
-        help="Print the leaderboard in multiple columns with the specified padding.",
-    )
-    args = vars(parser.parse_args(args))
+    args = parse.parse_priv_lb(args)
     ids = api.get_lb_ids()
     if ids:
         _lb = api.get_priv_lb(
@@ -190,88 +91,7 @@ def _priv_lb(args):
 
 
 def _glob_lb(args):
-    parser = argparse.ArgumentParser(
-        prog="aocstat lb glob",
-        description="Interact with the global Advent of Code leaderboards.",
-    )
-
-    def year_type(arg):
-        if int(arg) >= 2015 and int(arg) < 2025:
-            return int(arg)
-        else:
-            raise argparse.ArgumentTypeError(
-                "The year must be after 2014, and before 2025."
-            )
-
-    parser.add_argument(
-        "-y",
-        "--year",
-        action="store",
-        metavar="YEAR",
-        type=year_type,
-        default=None,
-        help="The year of the event.",
-    )
-
-    def day_type(arg):
-        if int(arg) >= 1 and int(arg) <= 25:
-            return int(arg)
-        else:
-            raise argparse.ArgumentTypeError("Day must be between 1 and 25.")
-
-    parser.add_argument(
-        "-d",
-        "--day",
-        default=None,
-        type=day_type,
-        help="The day of the event.",
-    )
-
-    parser.add_argument(
-        "-p",
-        "--part",
-        default=None,
-        type=int,
-        help="A part number (either 1 or 2).",
-    )
-
-    parser.add_argument(
-        "--no-pager",
-        action="store_true",
-        default=False,
-        help="Use a pager to view the output. Defaults to on for output longer than the terminal height (except for displaying input).",
-    )
-    parser.add_argument(
-        "--no-colour",
-        action="store_true",
-        help="Disable ANSI colour output.",
-    )
-    parser.add_argument(
-        "-f",
-        "--force",
-        default=False,
-        action="store_true",
-        help="Force update leaderboard, even if within the cache ttl. "
-        + "Please use responsibly (preferably not at all) and be considerate of others, especially in December!",
-    )
-    parser.add_argument(
-        "-c",
-        "--columns",
-        default=None,
-        const=1,
-        type=int,
-        action="store",
-        nargs="?",
-        help="Print the leaderboard in multiple columns with the specified padding.",
-    )
-    args = vars(parser.parse_args(args))
-    args["year"], args["day"], args["part"] = api.get_default_puzzle(
-        args["year"], args["day"], args["part"]
-    )
-    if args["day"] > api.get_most_recent_day(args["year"]):
-        parser.error("Day cannot be in the future.")
-    if args["year"] >= 2025:
-        parser.error("Years 2025 and after don't have global leaderboards.")
+    args = parse.parse_glob_lb(args)
     _lb = api.get_glob_lb(yr=args["year"], day=args["day"], part=args["part"])
     output = fmt.format_glob_lb(*_lb, ansi_on=not args["no_colour"])
 
@@ -281,206 +101,53 @@ def _glob_lb(args):
 
 
 def _purge(args=sys.argv[1:]):
-    parser = argparse.ArgumentParser(
-        prog="aocstat purge", description="Purge program cache."
-    )
-    parser.parse_args(args)
-    args = vars(parser.parse_args(args))
-    if args:
-        parser.error("No arguments allowed with 'purge' subcommand.")
-    else:
-        api.purge_cache()
-        print("Cache purged.")
+    args = parse.parse_purge(args)
+    api.purge_cache()
+    print("Cache purged.")
 
 
 def _config(args=sys.argv[1:]):
-    parser = argparse.ArgumentParser(
-        prog="aocstat config", description="View and edit config values."
-    )
-    parser.add_argument(
-        "subcommand",
-        choices=["list", "get", "set", "reset"],
-        help="Subcommand to use. Available options are 'list' (list all config values), 'get' (get a config value), or 'set' (edit a config value).",
-    )
-    parser.add_argument("subcommand args", nargs=argparse.REMAINDER)
-    args1 = vars(parser.parse_args(args))
-    if args1["subcommand"] == "list":
-        if args1["subcommand args"]:
-            parser.error("No arguments allowed with 'list' subcommand.")
-        else:
-            for key in config.DEFAULTS:
-                print(f"{key}: {config.get(key)}")
+    args = parse.parse_config(args)
+    if args["subcommand"] == "list":
+        _config_list(args["subcommand args"])
+    elif args["subcommand"] == "get":
+        _config_get(args["subcommand args"])
+    elif args["subcommand"] == "set":
+        _config_set(args["subcommand args"])
+    elif args["subcommand"] == "reset":
+        _config_reset(args["subcommand args"])
+
+
+def _config_list(args):
+    args = parse.parse_config_list(args)
+    for key in config.DEFAULTS:
+        print(f"{key}: {config.get(key)}")
+
+
+def _config_get(args):
+    args = parse.parse_config_get(args)
+    print(config.get(args["key"]))
+
+
+def _config_set(args):
+    args = parse.parse_config_set(args)
+    try:
+        config.set(args["key"], args["value"])
+    except TypeError:
+        print(config.TYPE_ERRS[args["key"]])
+
+
+def _config_reset(args):
+    args = parse.parse_config_reset(args)
+    if not args["key"]:
+        for key in config.DEFAULTS:
+            config.reset(key)
     else:
-        parser = argparse.ArgumentParser(
-            prog=f"aocstat config {args1['subcommand']}",
-            description="View and edit config values.",
-        )
-        if args1["subcommand"] == "reset":
-            parser.add_argument(
-                "-k",
-                "--key",
-                action="store",
-                choices=config.DEFAULTS.keys(),
-                help="Key to get or set. If not provided, resets all keys to default values.",
-            )
-        else:
-            parser.add_argument(
-                "key",
-                action="store",
-                choices=config.DEFAULTS.keys(),
-                help="Key to get or set.",
-            )
-            if args1["subcommand"] == "set":
-                parser.add_argument(
-                    "value",
-                    action="store",
-                    help="Value to set key to.",
-                )
-        args2 = vars(parser.parse_args(args1["subcommand args"]))
-
-        if args1["subcommand"] == "get":
-            print(config.get(args2["key"]))
-        elif args1["subcommand"] == "set":
-            try:
-                config.set(args2["key"], args2["value"])
-            except TypeError:
-                raise argparse.ArgumentTypeError(config.TYPE_ERRS[args2["key"]])
-        elif args1["subcommand"] == "reset":
-            if not args2["key"]:
-                for key in config.DEFAULTS:
-                    config.reset(key)
-            else:
-                config.reset(args2["key"])
-
-
-def _parse_puzzle_args(subcommand, args):
-    parser = argparse.ArgumentParser(
-        f"aocstat pz {subcommand}", "Interact with Advent of Code puzzles."
-    )
-
-    def year_type(arg):
-        if int(arg) >= 2015 and int(arg) <= api.get_most_recent_year():
-            return int(arg)
-        else:
-            raise argparse.ArgumentTypeError(
-                "The year must be after 2014, and not in the future."
-            )
-
-    parser.add_argument(
-        "-y",
-        "--year",
-        action="store",
-        type=year_type,
-        help="Year of puzzle. Default is the most recent year.",
-        default=None,
-    )
-
-    def day_type(arg):
-        if int(arg) >= 1 and int(arg) <= 25:
-            return int(arg)
-        else:
-            raise argparse.ArgumentTypeError("Day must be between 1 and 25.")
-
-    parser.add_argument(
-        "-d",
-        "--day",
-        action="store",
-        type=day_type,
-        default=None,
-        help="Day of puzzle.",
-    )
-
-    parser.add_argument(
-        "-p",
-        "--part",
-        action="store",
-        type=int,
-        default=None,
-        help="Part of puzzle.",
-    )
-
-    if subcommand == "submit":
-        parser.add_argument(
-            "answer",
-            type=str,
-        )
-        parser.add_argument(
-            "-a",
-            "--auto-wait",
-            help="Automatically wait and resubmit if you submitted an answer too recently.",
-            action="store_true",
-        )
-    elif subcommand == "view":
-        parser.add_argument(
-            "-w",
-            "--width",
-            action="store",
-            type=int,
-            default=80,
-            help="Width of the output. Default is 80 characters. Set to 0 for no wrapping.",
-        )
-        parser.add_argument(
-            "-c",
-            "--columns",
-            default=None,
-            const=1,
-            type=int,
-            action="store",
-            nargs="?",
-            help="Print the output in multiple columns with the specified padding.",
-        )
-        parser.add_argument(
-            "--no-pager",
-            action="store_true",
-            default=False,
-            help="Use a pager to view the output. Defaults to on for output longer than the terminal height (except for displaying input).",
-        )
-        parser.add_argument(
-            "--no-colour",
-            action="store_true",
-            help="Disable ANSI colour output.",
-        )
-    output = vars(parser.parse_args(args))
-    output["year"], output["day"], output["part"] = api.get_default_puzzle(
-        output["year"], output["day"], output["part"]
-    )
-    if output["day"] > api.get_most_recent_day(output["year"]):
-        parser.error("Day cannot be in the future.")
-
-    if api.get_current_part(output["year"], output["day"]) == 1 and output["part"] == 2:
-        parser.error(
-            "You have to complete the previous part to interact with this puzzle."
-        )
-
-    if subcommand == "submit":
-        if (
-            api.get_current_part(output["year"], output["day"]) == 2
-            and output["part"] == 1
-        ):
-            parser.error("You have already completed part 1 of this puzzle.")
-
-        if api.get_current_part(output["year"], output["day"]) is None:
-            parser.error("You have already completed every part of this puzzle.")
-
-    if not (
-        output["year"] is None and output["day"] is None and output["part"] is None
-    ):
-        api.set_prog(output["year"], output["day"], output["part"])
-
-    return output
+        config.reset(args["key"])
 
 
 def _pz(args=sys.argv[1:]):
-    parser = argparse.ArgumentParser(
-        prog="aocstat pz", description="Interact with Advent of Code puzzles."
-    )
-    parser.add_argument(
-        "subcommand",
-        choices=["view", "input", "submit"],
-        help="Subcommand to use. Available options are 'view' (view puzzle instructions), 'input' (get puzzle input), or 'submit' (submit puzzle answer).",
-    )
-    parser.add_argument("subcommand args", nargs=argparse.REMAINDER)
-    args = vars(parser.parse_args(args))
+    args = parse.parse_pz(args)
     if args["subcommand"] == "view":
         _pz_view(args["subcommand args"])
     if args["subcommand"] == "input":
@@ -490,7 +157,9 @@ def _pz(args=sys.argv[1:]):
 
 
 def _pz_view(args):
-    args = _parse_puzzle_args("view", args)
+    args = parse.parse_pz_view(args)
+    if args["set_prog"]:
+        api.set_prog(args["year"], args["day"], args["part"])
     puzzle = None
     puzzle = api.get_puzzle(yr=args["year"], day=args["day"], part=args["part"])
     output = fmt.format_puzzle(
@@ -509,7 +178,9 @@ def _pz_view(args):
 
 
 def _pz_input(args):
-    args = _parse_puzzle_args("input", args)
+    args = parse.parse_pz_input(args)
+    if args["set_prog"]:
+        api.set_prog(args["year"], args["day"], args["part"])
     input = api.get_input(yr=args["year"], day=args["day"])
     output = input
     print(output, end="")
@@ -517,7 +188,9 @@ def _pz_input(args):
 
 def _pz_submit(args):
     input_args = args
-    args = _parse_puzzle_args("submit", args)
+    args = parse.parse_pz_input(args)
+    if args["set_prog"]:
+        api.set_prog(args["year"], args["day"], args["part"])
 
     output = None
     correct, timeout, too_high = api.submit_answer(
