@@ -81,7 +81,9 @@ def _priv_lb(args):
         _lb = api.get_priv_lb(
             id=args["id"], yr=args["year"], force_update=args["force"]
         )
-        output = fmt.format_priv_lb(*_lb, ansi_on=not args["no_colour"])
+        output = fmt.format_priv_lb(
+            *_lb, year=args["year"], ansi_on=not args["no_colour"]
+        )
     else:
         output = "You have no private leaderboard to display."
 

@@ -28,11 +28,12 @@ def _colour(text, colour, ansi_on, alt_text=None):
     )
 
 
-def format_priv_lb(lb, cached, ansi_on):
+def format_priv_lb(lb, cached, year, ansi_on):
     """Return a string representing a leaderboard `lb`.
 
     Args:
         lb (dict): Leaderboard to represent.
+        year (int): Year of the leaderboard.
         cached (int | bool): Unix timestamp of the last time the leaderboard was cached. False if not cached.
         ansi_on (bool): Whether to use ANSI colour codes.
 
@@ -40,6 +41,7 @@ def format_priv_lb(lb, cached, ansi_on):
         lb_str (str): A 'pretty' string representing the leaderboard.
     """
     res = ""
+    res += _colour(f"Year {year}\n", "bright_grey", ansi_on)
     if cached:
         res += _colour(
             f"Leaderboard cached at {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(cached))}\n",
@@ -48,7 +50,6 @@ def format_priv_lb(lb, cached, ansi_on):
         )
     res += "\n"
     # TODO: allow ordering selection
-    # TODO: formatting for year >= 2025 shouldn't include days >= 13
 
     # establish left offset from numbering digits & score digits
     members = sorted(
@@ -60,9 +61,12 @@ def format_priv_lb(lb, cached, ansi_on):
     rank_offset = len(str(len(members)))
     score_offset = len(str(lb["members"][members[0]]["local_score"]))
     l_offset = rank_offset + 2 + score_offset + 1
+    no_days = api.get_max_day(year)
 
     # append the '11111122222' line
-    day_labels_1 = [None] * 9 + [1] * 10 + [2] * 6
+    day_labels_1 = [
+        None if x < 10 else (1 if x < 20 else 2) for x in range(1, no_days + 1)
+    ]
     res += (
         " " * (l_offset + 1)
         + "".join(
@@ -77,26 +81,24 @@ def format_priv_lb(lb, cached, ansi_on):
                         ),
                         ansi_on,
                     )
-                    if day_labels_1[i] is not None
+                    if label is not None
                     else " "
                 )
                 + " "
-                for i in range(25)
+                for i, label in enumerate(day_labels_1)
             ]
         )
         + "\n"
     )
 
     # append the '123456...' line
-    day_labels_2 = (
-        [i for i in range(1, 10)] + [i for i in range(10)] + [i for i in range(6)]
-    )
+    day_labels_2 = [str(x)[-1] for x in range(1, no_days + 1)]
     res += (
         " " * (l_offset + 1)
         + "".join(
             [
                 _colour(
-                    str(day_labels_2[i]),
+                    label,
                     (
                         "bright_green"
                         if i < api.get_most_recent_day(int(lb["event"]))
@@ -105,7 +107,7 @@ def format_priv_lb(lb, cached, ansi_on):
                     ansi_on,
                 )
                 + " "
-                for i in range(25)
+                for i, label in enumerate(day_labels_2)
             ]
         )
         + "\n"
@@ -126,7 +128,7 @@ def format_priv_lb(lb, cached, ansi_on):
         )
         # add stars
         completion = lb["members"][member]["completion_day_level"]
-        for day in range(1, 26):
+        for day in range(1, no_days + 1):
             if str(day) in completion:
                 if str("2") in completion[str(day)]:
                     res += _colour("* ", "bright_yellow", ansi_on)
