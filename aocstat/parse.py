@@ -335,8 +335,8 @@ def parse_pz(args):
     )
     parser.add_argument(
         "subcommand",
-        choices=["view", "input", "submit"],
-        help="Subcommand to use. Available options are 'view' (view puzzle instructions), 'input' (get puzzle input), or 'submit' (submit puzzle answer).",
+        choices=["view", "input", "submit", "ex"],
+        help="Subcommand to use. Available options are 'view' (view puzzle instructions), 'input' (get puzzle input), 'submit' (submit puzzle answer), or 'ex' (get puzzle examples).",
     )
     parser.add_argument("subcommand args", nargs=argparse.REMAINDER)
     output = vars(parser.parse_args(args))
@@ -389,23 +389,15 @@ def parse_pz_input(args):
 
     __pz_year_arg(parser)
     __pz_day_arg(parser)
-    __pz_part_arg(parser)
 
     output = vars(parser.parse_args(args))
 
-    output["set_prog"] = not (
-        output["year"] is None and output["day"] is None and output["part"] is None
-    )
-    output["year"], output["day"], output["part"] = api.get_default_puzzle(
-        output["year"], output["day"], output["part"]
+    output["year"], output["day"], _ = api.get_default_puzzle(
+        output["year"], output["day"], None
     )
     if output["day"] > api.get_most_recent_day(output["year"]):
         parser.error("Day cannot be in the future.")
 
-    if api.get_current_part(output["year"], output["day"]) == 1 and output["part"] == 2:
-        parser.error(
-            "You have to complete the previous part to interact with this puzzle."
-        )
     return output
 
 
@@ -447,4 +439,40 @@ def parse_pz_submit(args):
 
     if api.get_current_part(output["year"], output["day"]) is None:
         parser.error("You have already completed every part of this puzzle.")
+    return output
+
+
+def parse_pz_ex(args):
+    parser = argparse.ArgumentParser(
+        "aocstat pz ex", "Get Advent of Code puzzle examples."
+    )
+    __pz_year_arg(parser)
+    __pz_day_arg(parser)
+
+    parser.add_argument(
+        "-n",
+        "--number",
+        help="Which example to grab (where there are more than 1). Defaults to 1.",
+        default=1,
+        type=int,
+    )
+    output = vars(parser.parse_args(args))
+
+    # have to pass part 1 here to avoid it checking what the current part is
+    output["year"], output["day"], _ = api.get_default_puzzle(
+        output["year"], output["day"], 1
+    )
+    if output["day"] > api.get_most_recent_day(output["year"]):
+        parser.error("Day cannot be in the future.")
+
+    # so we don't have to make any calls over the network to retrieve a cached example -- otherwise we do so in api.get_num_examples() -> api._get_puzzle_soup -> api.get_current_part
+    if output["number"] > api.get_num_cached_examples(output["year"], output["day"]):
+        num_examples = api.get_num_examples(output["year"], output["day"])
+        if output["number"] > num_examples:
+            parser.error(
+                f"This puzzle only has {num_examples} example(s) available right now."
+            )
+    if output["number"] < 1:
+        parser.error("Example number must be at least 1.")
+
     return output

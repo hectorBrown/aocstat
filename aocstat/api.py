@@ -1,5 +1,6 @@
 import datetime as dt
 import json
+from collections import Counter
 import os
 import os.path as op
 import pickle
@@ -427,6 +428,38 @@ def _parse_puzzle_text(tags, attributes=[]):
     return output
 
 
+def _get_puzzle_soup(yr, day):
+    curr_part = get_current_part(yr, day)
+
+    # if we don't have the full puzzle text save a partial cache
+    if curr_part == 1:
+        if op.exists(f"{data_dir}/pz_soup_partial_{yr}_{day}"):
+            with open(f"{data_dir}/pz_soup_partial_{yr}_{day}", "rb") as f:
+                return pickle.load(f)
+    else:
+        # when we have the full text -- if we have a partial cache, delete it
+        if op.exists(f"{data_dir}/pz_soup_partial_{yr}_{day}"):
+            os.remove(f"{data_dir}/pz_soup_partial_{yr}_{day}")
+        if op.exists(f"{data_dir}/pz_soup_{yr}_{day}"):
+            with open(f"{data_dir}/pz_soup_{yr}_{day}", "rb") as f:
+                return pickle.load(f)
+
+    cookie = get_cookie()
+    puzzle_raw = rq.get(
+        f"https://adventofcode.com/{yr}/day/{day}",
+        cookies={"session": cookie},
+    )
+    pz_soup = BeautifulSoup(puzzle_raw.content, "html.parser")
+
+    if curr_part == 1:
+        with open(f"{data_dir}/pz_soup_partial_{yr}_{day}", "wb") as f:
+            pickle.dump(pz_soup, f)
+    else:
+        with open(f"{data_dir}/pz_soup_{yr}_{day}", "wb") as f:
+            pickle.dump(pz_soup, f)
+    return pz_soup
+
+
 def get_puzzle(yr, day, part):
     """Get the puzzle text for a given day and part.
 
@@ -442,19 +475,8 @@ def get_puzzle(yr, day, part):
         with open(f"{data_dir}/pz_{yr}_{day}_{part}", "rb") as f:
             return pickle.load(f)
 
-    cookie = get_cookie()
-    if part > get_current_part(yr, day):
-        return None
-    puzzle_raw = rq.get(
-        f"https://adventofcode.com/{yr}/day/{day}",
-        cookies={"session": cookie},
-    )
-
-    pz_soup = BeautifulSoup(puzzle_raw.content, "html.parser")
+    pz_soup = _get_puzzle_soup(yr, day)
     parts_available = pz_soup.find_all("article", {"class": "day-desc"})
-
-    if len(parts_available) < part:
-        raise ValueError("The part you requested is not available yet.")
 
     part_soup = parts_available[part - 1]
 
@@ -467,7 +489,7 @@ def get_puzzle(yr, day, part):
     return puzzle
 
 
-def get_input(yr, day):
+def get_puzzle_input(yr, day):
     """Get the puzzle input for a given day.
 
     Args:
@@ -672,3 +694,103 @@ def step_progress():
 
     with open(f"{data_dir}/prog", "wb") as f:
         pickle.dump(prog, f)
+
+
+def _is_an_example(year, day, example_text):
+    input = get_puzzle_input(year, day)
+
+    if len(example_text) == 1:
+        return False
+
+    # character frequency test
+    def get_fingerprint(text):
+        # Count frequency of symbols, digits, and whitespace
+        counts = Counter(text)
+        total = len(text) or 1
+        return {
+            char: count / total for char, count in counts.items() if not char.isalpha()
+        }
+
+    # Lower score = more similar
+    character_freq_score = 0
+    input_fp = get_fingerprint(input)
+    example_fp = get_fingerprint(example_text)
+
+    # is the example text made up of only characters present in the input text
+    # (and does the input text have a sufficiently small range of characters)
+    if len(input_fp) < 20 and set(example_fp.keys()) <= set(input_fp.keys()):
+        return True
+
+    all_chars = set(input_fp.keys()) | set(example_fp.keys())
+    for char in all_chars:
+        character_freq_score += abs(input_fp.get(char, 0) - example_fp.get(char, 0))
+
+    return character_freq_score < 0.1
+
+
+def _get_puzzle_examples(year, day):
+    pz_soup = _get_puzzle_soup(year, day)
+    code_tags = pz_soup.find_all("code")
+    examples = []
+    for code in code_tags:
+        code_text = code.get_text()
+        if _is_an_example(year, day, code_text):
+            examples.append(code_text)
+    for i, example in enumerate(examples):
+        if not op.exists(f"{data_dir}/pz_example_{year}_{day}_{i + 1}"):
+            with open(f"{data_dir}/pz_example_{year}_{day}_{i + 1}", "wb") as f:
+                pickle.dump(example, f)
+    return examples
+
+
+def get_puzzle_example(year, day, number):
+    """Gets the example input for a given puzzle.
+
+    Args:
+        year (int): The year of the puzzle.
+        day (int): The day of the puzzle.
+        number (int): The example number to get.
+
+    Returns:
+        example (str): The example input.
+    """
+    if op.exists(f"{data_dir}/pz_example_{year}_{day}_{number}"):
+        with open(f"{data_dir}/pz_example_{year}_{day}_{number}", "rb") as f:
+            return pickle.load(f)
+
+    examples = _get_puzzle_examples(year, day)
+    with open(f"{data_dir}/pz_example_{year}_{day}_{number}", "wb") as f:
+        pickle.dump(examples[number - 1], f)
+    return examples[number - 1]
+
+
+def get_num_examples(year, day):
+    """Gets the number of examples for a given puzzle.
+
+    Args:
+        year (int): The year of the puzzle.
+        day (int): The day of the puzzle.
+
+    Returns:
+        number (int): The number of examples.
+    """
+    return len(_get_puzzle_examples(year, day))
+
+
+def get_num_cached_examples(year, day):
+    """Gets the number of examples already in the cache.
+
+    Args:
+        year (int): The year of the puzzle.
+        day (int): The day of the puzzle.
+
+    Returns:
+        num_cached (int): The number of examples in the cache.
+    """
+    return sum(
+        [
+            1
+            for fname in os.listdir(data_dir)
+            if re.match(rf"pz_example_{year}_{day}_\d+", fname)
+        ]
+    )

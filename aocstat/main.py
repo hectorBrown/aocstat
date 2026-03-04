@@ -154,8 +154,18 @@ def _pz(args=sys.argv[1:]):
         _pz_view(args["subcommand args"])
     if args["subcommand"] == "input":
         _pz_input(args["subcommand args"])
+    if args["subcommand"] == "ex":
+        _pz_example(args["subcommand args"])
     if args["subcommand"] == "submit":
         _pz_submit(args["subcommand args"])
+
+
+def _pz_example(args):
+    args = parse.parse_pz_ex(args)
+    example = api.get_puzzle_example(
+        year=args["year"], day=args["day"], number=args["number"]
+    )
+    print(example, end="")
 
 
 def _pz_view(args):
@@ -181,9 +191,7 @@ def _pz_view(args):
 
 def _pz_input(args):
     args = parse.parse_pz_input(args)
-    if args["set_prog"]:
-        api.set_prog(args["year"], args["day"], args["part"])
-    input = api.get_input(yr=args["year"], day=args["day"])
+    input = api.get_puzzle_input(yr=args["year"], day=args["day"])
     output = input
     print(output, end="")
 
